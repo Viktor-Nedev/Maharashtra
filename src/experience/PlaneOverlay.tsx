@@ -23,7 +23,7 @@ function Plane({ lowPower }: { lowPower: boolean }) {
     const target = useScrollStore.getState().progress;
 
     // Ease toward the scroll target → smooth, buttery flight transition.
-    state.current.ep += (target - state.current.ep) * Math.min(1, dt * 3.2);
+    state.current.ep += (target - state.current.ep) * Math.min(1, dt * 2.6);
     const p = state.current.ep;
 
     // Scroll velocity (from the eased value) → banking.
@@ -34,28 +34,32 @@ function Plane({ lowPower }: { lowPower: boolean }) {
     const t = s.clock.elapsedTime;
 
     // Flight phases ---------------------------------------------------------
-    // enter  : fly in from below + far away at the first destination.
+    // enter  : glide in from the left side of the frame at the first destination.
     // turn   : pivot from facing the viewer to flying forward into the scene.
     // descend: gentle drop toward the lower sections across the scroll.
-    // exit   : bank hard and peel off to the right into the distance.
-    const enter = THREE.MathUtils.smoothstep(p, 0.0, 0.09);
-    const turn = THREE.MathUtils.smoothstep(p, 0.05, 0.24);
-    const descend = THREE.MathUtils.smoothstep(p, 0.12, 0.9);
-    const exit = THREE.MathUtils.smoothstep(p, 0.9, 1.0);
+    // exit   : bank away and slide off to the right into the distance.
+    // Wide, eased ranges keep the appear/disappear soft and smooth.
+    const enter = THREE.MathUtils.smoothstep(p, 0.0, 0.16);
+    const turn = THREE.MathUtils.smoothstep(p, 0.06, 0.26);
+    const descend = THREE.MathUtils.smoothstep(p, 0.14, 0.9);
+    const exit = THREE.MathUtils.smoothstep(p, 0.84, 1.0);
 
     // Position --------------------------------------------------------------
     const weave = Math.sin(p * Math.PI * 3) * 1.2 * turn;
-    const x = weave + exit * exit * 15; // sweep off to the right on exit
+    const x =
+      weave +
+      (1 - enter) * -18 + // start off the left edge, slide in
+      exit * exit * 18; // slide off to the right on exit
     const y =
       THREE.MathUtils.lerp(1.3, -1.5, descend) +
       Math.sin(t * 1.2) * 0.12 +
-      (1 - enter) * -5.5 + // start well below the frame, rise into place
-      exit * 3.2; // climb away on exit
-    const z = (1 - enter) * -12 + exit * -7; // arrive from afar, recede on exit
+      (1 - enter) * 0.9 + // drift down slightly as it enters
+      exit * 3.0; // climb away on exit
+    const z = exit * -7; // recede into the distance on exit
     group.current.position.set(x, y, z);
 
-    // Grow in from the distance as it appears.
-    group.current.scale.setScalar(baseScale * (0.4 + 0.6 * enter));
+    // Gentle grow-in as it appears from the side.
+    group.current.scale.setScalar(baseScale * (0.62 + 0.38 * enter));
 
     // Banking from scroll velocity, plus a hard roll into the exit turn.
     const targetBank =

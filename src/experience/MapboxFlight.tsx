@@ -34,6 +34,9 @@ export function MapboxFlight() {
       zoom: 11,
       pitch: 70,
       bearing: 0,
+      // The empty custom style defaults to the globe projection; the scroll
+      // fly-through (free-camera) is designed for a flat mercator world.
+      projection: { name: 'mercator' },
       interactive: false, // page scroll drives the flight, not the map
       attributionControl: false,
       antialias: true,
@@ -80,14 +83,15 @@ export function MapboxFlight() {
       }
       map.setTerrain({ source: 'dem', exaggeration: 1.6 });
 
-      // Atmospheric sky + fog
+      // Light atmospheric haze — kept far out so the satellite terrain stays
+      // crisp and visible rather than being washed flat-white.
       map.setFog({
-        range: [0.5, 12],
-        color: 'rgba(220, 232, 244, 0.9)',
-        'high-color': '#7fb2e6',
-        'horizon-blend': 0.25,
+        range: [3, 18],
+        color: 'rgba(214, 228, 242, 0.35)',
+        'high-color': '#9cc4ee',
+        'horizon-blend': 0.12,
         'space-color': '#0a1430',
-        'star-intensity': 0.1,
+        'star-intensity': 0.05,
       });
 
       // Landmark markers
@@ -104,18 +108,34 @@ export function MapboxFlight() {
 
       setReady(true);
 
+      // Only re-aim the camera when the eased progress actually moves. Pushing
+      // free-camera options every single frame (even when settled) makes
+      // mapbox-gl continuously re-evaluate and ABORT in-flight satellite tiles,
+      // so the imagery never finishes loading and the map looks blank. Snapping
+      // when close + skipping no-op updates lets the tiles load once you stop.
+      let applied = -1;
       const tick = () => {
         const target = useScrollStore.getState().progress;
-        eased += (target - eased) * 0.08;
+        eased += (target - eased) * 0.1;
+        if (Math.abs(target - eased) < 0.0003) eased = target;
 
-        const ground = routePointAt(eased);
-        const look = routePointAt(Math.min(1, eased + 0.03));
-        const alt = altitudeAt(eased);
+        if (Math.abs(eased - applied) > 0.00004) {
+          applied = eased;
+          const ground = routePointAt(eased);
+          const alt = altitudeAt(eased);
+          // Scale the look-ahead with altitude so the camera holds a ~55-60°
+          // downward pitch instead of staring at the horizon. This keeps the
+          // satellite terrain filling the frame AND keeps the visible area small
+          // enough that its tiles actually finish loading (a horizon-ward pitch
+          // needs hundreds of tiles and never resolves → blank map).
+          const lookFrac = Math.min(0.014, Math.max(0.004, alt / 350000));
+          const look = routePointAt(Math.min(1, eased + lookFrac));
 
-        const cam = map.getFreeCameraOptions();
-        cam.position = mapboxgl.MercatorCoordinate.fromLngLat(ground, alt);
-        cam.lookAtPoint(look);
-        map.setFreeCameraOptions(cam);
+          const cam = map.getFreeCameraOptions();
+          cam.position = mapboxgl.MercatorCoordinate.fromLngLat(ground, alt);
+          cam.lookAtPoint(look);
+          map.setFreeCameraOptions(cam);
+        }
 
         raf = requestAnimationFrame(tick);
       };

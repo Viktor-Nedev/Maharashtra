@@ -25,6 +25,17 @@
 }
 
 /* ---- Mapbox flight layer -------------------------------------------------- */
+/* mapbox-gl.css adds `.mapboxgl-map { position: relative }` to our container,
+   which has the same specificity as `.experience-canvas` but loads later — so it
+   would win and collapse the map to height 0. This combined-class selector
+   (higher specificity) pins the map full-screen behind everything. */
+.experience-canvas.mapflight {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
 .mapflight {
   background: #0a1430;
   .mapboxgl-ctrl-logo,
@@ -209,7 +220,7 @@
     position: relative;
     z-index: 1;
     width: 100%;
-    max-width: min(94vw, 1200px);
+    max-width: min(96vw, 1400px);
     margin: 0 auto;
     padding: 0 1rem;
     transform: translateY(-4vh);
@@ -222,12 +233,14 @@
        screen; letter-spacing shrinks on narrow widths too. */
     font-family: var(--font-display);
     font-weight: 800;
-    font-size: clamp(2.2rem, 10vw, 7.5rem);
-    line-height: 0.95;
-    letter-spacing: clamp(0.03em, 0.9vw, 0.12em);
+    /* sized in vw + nowrap so MAHARASHTRA always stays on a single line and
+       still fits the viewport width (the display face is very wide). */
+    font-size: clamp(1.3rem, 5.2vw, 5rem);
+    line-height: 1;
+    white-space: nowrap;
+    letter-spacing: clamp(0.01em, 0.3vw, 0.05em);
     /* balance the trailing letter-spacing so the word stays optically centred */
-    padding-left: clamp(0.03em, 0.9vw, 0.12em);
-    overflow-wrap: break-word;
+    padding-left: clamp(0.01em, 0.3vw, 0.05em);
     background: linear-gradient(180deg, #ffffff 0%, #ffe0bd 58%, var(--accent) 130%);
     -webkit-background-clip: text;
     background-clip: text;

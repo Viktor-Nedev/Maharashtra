@@ -150,7 +150,7 @@ export function routePointAt(t: number): [number, number] {
 /** Camera altitude in metres at fraction t — descends from high to low. */
 export function altitudeAt(t: number): number {
   const HIGH = 4200;
-  const LOW = 1300;
+  const LOW = 1500;
   // Ease so the descent accelerates toward the landing.
   const e = Math.pow(Math.max(0, Math.min(1, t)), 1.25);
   return lerp(HIGH, LOW, e);
