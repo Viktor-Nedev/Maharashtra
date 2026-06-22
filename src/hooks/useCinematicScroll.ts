@@ -2,7 +2,7 @@ import { useLayoutEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useScrollStore } from '@/lib/scrollStore';
-import { sceneAt } from '@/experience/flight';
+import { landmarkAt } from '@/experience/mapRoute';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -27,7 +27,7 @@ export function useCinematicScroll(containerRef: React.RefObject<HTMLElement>) {
         onUpdate: (self) => {
           const p = self.progress;
           setProgress(p);
-          setScene(sceneAt(p).index);
+          setScene(landmarkAt(p).index);
         },
       });
     }, el);

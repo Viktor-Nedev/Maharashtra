@@ -11,18 +11,20 @@ with a real booking platform. Built for the **3D Websites Hackathon** and
 
 ## ✨ Highlights
 
-- **8-scene scroll cinematic** driven by GSAP ScrollTrigger → a single scroll
-  progress value steers a React Three Fiber world (airplane, chase camera, fog,
-  colour grading, camera shake).
-- **Procedural world** — mountains, reflective lake, instanced forest, cliffs and
-  a glowing landing hub, all generated from code (zero external 3D assets needed
-  to run; drop in `airplane.glb` etc. when ready).
-- **Cinematic post-processing** — bloom, depth-of-field, vignette, film grain.
-- **Volumetric clouds** that engulf the camera during transition scenes.
+- **Scroll-driven Mapbox flight** — the homepage is a real **3D satellite Mapbox
+  map** of Maharashtra that you fly across as you scroll. The camera tracks a
+  landmark route south → north, descending in altitude (flying *down* toward the
+  terrain), while a 3D airplane (transparent R3F layer) banks in front of it.
+- **Cloud-load transition** — clouds part and fade to reveal the flight on load.
+- **A bespoke 3D scene for every activity** — trekking, camping, kayaking,
+  rafting, boating, scuba, zipline, paragliding, hot-air balloon, climbing,
+  rappelling, wildlife and caving each get their own animated, interactive
+  (drag-to-orbit) React Three Fiber scene with bloom.
+- **Light & dark mode** — persisted, OS-aware, toggle in every nav.
 - **Full booking platform** — explore + filter, Mapbox 3D terrain map,
   destination detail, operators, reviews, booking flow, saved trips, history.
-- **Runs with zero config** — Supabase + Mapbox are optional; the app falls back
-  to seed data + localStorage so you can demo instantly.
+- **Runs with zero config** — Supabase is optional; the app falls back to seed
+  data + localStorage. (Mapbox needs a token for the satellite map.)
 - **Performance-aware** — adaptive DPR, a low-power render path for mobile /
   reduced-motion, aggressive code-splitting, lazy routes.
 
@@ -59,28 +61,32 @@ supabase db push
 
 ```
 src/
-  experience/        # WebGL flight: Canvas, FlightController, World, Clouds, Markers, Effects
-  pages/home/        # Cinematic homepage + scene content + loader + progress rail
-  pages/platform/    # Explore, DestinationDetail, Booking, Account
-  components/         # PlatformLayout, WorldMap (Mapbox)
-  data/              # Destinations / activities / operators seed model
-  lib/               # scrollStore, platform store (persisted), supabase client
-  hooks/             # useCinematicScroll (GSAP), useMediaQuery / useLowPower
-  styles/            # SCSS tokens + base + cinematic + platform
-supabase/schema.sql  # Tables + RLS policies
-vercel.json          # SPA rewrites + asset caching
+  experience/             # MapboxFlight (home map), PlaneOverlay, Airplane, mapRoute
+  experience/activities/  # Per-activity 3D scenes: kit, scenes, ActivityScene
+  pages/home/             # Cinematic homepage + CloudIntro + progress rail
+  pages/platform/         # Explore, DestinationDetail, Booking, Account
+  components/              # PlatformLayout, WorldMap (Mapbox), ThemeToggle
+  data/                   # Destinations / activities / operators seed model
+  lib/                    # scrollStore, themeStore, platform store, supabase client
+  hooks/                  # useCinematicScroll (GSAP), useMediaQuery / useLowPower
+  styles/                 # SCSS tokens (light+dark) + base + cinematic + platform + components
+supabase/schema.sql       # Tables + RLS policies
+vercel.json               # SPA rewrites + asset caching
 ```
 
-## 🎬 How the flight works
+## 🎬 How the home flight works
 
 1. `useCinematicScroll` attaches one scrubbed GSAP ScrollTrigger over the whole
    page and writes `progress` (0→1) to a Zustand store.
-2. `FlightController` reads `progress` each frame and samples a
-   `CatmullRomCurve3` flight path for position + tangent, banks the plane into
-   turns, follows with a smoothed chase camera, and cross-fades the
-   sky/fog/light between the 8 scenes (`src/experience/flight.ts`).
-3. The DOM overlay (`pages/home`) shows synchronized text per scene and a scene
-   progress rail.
+2. `MapboxFlight` runs a smoothed RAF loop that reads `progress`, samples the
+   landmark route (`mapRoute.ts`) for a ground position + look-ahead point and a
+   descending altitude, and drives the Mapbox camera with `setFreeCameraOptions`
+   over 3D satellite terrain. All map interactions are disabled so page scroll
+   *is* the flight.
+3. `PlaneOverlay` is a transparent R3F canvas above the map: the airplane banks
+   with scroll velocity and holds a nose-down pitch, so it reads as diving down
+   across the live map.
+4. The DOM overlay shows synchronized copy per landmark + a progress rail.
 
 ## 🚢 Deploy
 

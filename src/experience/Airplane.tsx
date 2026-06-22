@@ -33,38 +33,39 @@ export const Airplane = forwardRef<THREE.Group>((_, ref) => {
     // Inner group rotated so the model "nose" points down -Z (flight forward).
     <group ref={ref} dispose={null}>
       <group rotation={[0, Math.PI, 0]} scale={1.1}>
-        {/* Fuselage */}
-        <mesh material={bodyMat} castShadow>
-          <capsuleGeometry args={[0.62, 3.4, 6, 16]} />
+        {/* Fuselage — capsule laid along the Z (forward) axis so it reads as a
+            sleek body, not a vertical cylinder. */}
+        <mesh rotation={[Math.PI / 2, 0, 0]} material={bodyMat} castShadow>
+          <capsuleGeometry args={[0.46, 3.4, 8, 18]} />
         </mesh>
         {/* Nose cone */}
-        <mesh position={[0, 0, 2.1]} rotation={[Math.PI / 2, 0, 0]} material={accentMat} castShadow>
-          <coneGeometry args={[0.62, 1.1, 16]} />
+        <mesh position={[0, 0, 2.35]} rotation={[Math.PI / 2, 0, 0]} material={accentMat} castShadow>
+          <coneGeometry args={[0.46, 1.0, 18]} />
         </mesh>
         {/* Cockpit glass */}
-        <mesh position={[0, 0.38, 1.0]} scale={[0.7, 0.55, 1.1]} material={glassMat}>
-          <sphereGeometry args={[0.55, 16, 16]} />
+        <mesh position={[0, 0.3, 1.25]} scale={[0.62, 0.5, 1.15]} material={glassMat}>
+          <sphereGeometry args={[0.5, 16, 16]} />
         </mesh>
-        {/* Main wings */}
-        <mesh position={[0, -0.1, 0]} rotation={[0, 0, 0]} castShadow material={bodyMat}>
-          <boxGeometry args={[7.2, 0.12, 1.3]} />
+        {/* Main wings — slight back-sweep for a jet look */}
+        <mesh position={[0, -0.08, -0.1]} rotation={[0, 0, 0]} castShadow material={bodyMat}>
+          <boxGeometry args={[7.0, 0.1, 1.2]} />
         </mesh>
         {/* Wing accent stripes */}
-        <mesh position={[0, -0.04, 0.55]} material={accentMat}>
-          <boxGeometry args={[7.2, 0.14, 0.18]} />
+        <mesh position={[0, -0.02, 0.4]} material={accentMat}>
+          <boxGeometry args={[7.0, 0.12, 0.16]} />
         </mesh>
         {/* Tail wings */}
-        <mesh position={[0, 0.05, -1.9]} castShadow material={bodyMat}>
-          <boxGeometry args={[2.6, 0.1, 0.7]} />
+        <mesh position={[0, 0.04, -1.95]} castShadow material={bodyMat}>
+          <boxGeometry args={[2.6, 0.09, 0.7]} />
         </mesh>
         {/* Vertical stabiliser */}
-        <mesh position={[0, 0.55, -1.95]} castShadow material={accentMat}>
-          <boxGeometry args={[0.12, 1.0, 0.8]} />
+        <mesh position={[0, 0.5, -2.0]} rotation={[-0.25, 0, 0]} castShadow material={accentMat}>
+          <boxGeometry args={[0.11, 0.95, 0.7]} />
         </mesh>
-        {/* Engine pods */}
+        {/* Engine pods slung under the wings */}
         {[-2.0, 2.0].map((x) => (
-          <mesh key={x} position={[x, -0.28, 0.2]} rotation={[Math.PI / 2, 0, 0]} material={bodyMat} castShadow>
-            <cylinderGeometry args={[0.26, 0.26, 1.0, 12]} />
+          <mesh key={x} position={[x, -0.3, 0.15]} rotation={[Math.PI / 2, 0, 0]} material={bodyMat} castShadow>
+            <cylinderGeometry args={[0.22, 0.22, 1.1, 14]} />
           </mesh>
         ))}
       </group>

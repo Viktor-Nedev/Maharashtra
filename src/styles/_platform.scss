@@ -484,23 +484,6 @@
     grid-template-columns: 1fr;
   }
 }
-.booking__summary {
-  border-radius: var(--radius-lg);
-  padding: 2.2rem;
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  min-height: 340px;
-  h1 {
-    font-size: 2rem;
-    margin: 0.5rem 0;
-  }
-  p {
-    color: rgba(255, 255, 255, 0.85);
-  }
-}
 .booking__facts {
   display: flex;
   gap: 1rem;

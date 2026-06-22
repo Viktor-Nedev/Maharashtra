@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { isSupabaseEnabled } from '@/lib/supabase';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 /** Shared chrome (nav + footer) for the booking platform routes. */
 export function PlatformLayout() {
@@ -12,6 +13,7 @@ export function PlatformLayout() {
         <nav className="platform__links">
           <NavLink to="/explore">Explore</NavLink>
           <NavLink to="/account">Trips</NavLink>
+          <ThemeToggle />
           <Link to="/" className="nav__cta">
             ✦ Cinematic
           </Link>

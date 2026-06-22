@@ -73,6 +73,7 @@ export default function DestinationDetail() {
                       <span>⏱ {a.durationHours}h</span>
                       <span className={`difficulty difficulty--${a.difficulty}`}>{a.difficulty}</span>
                     </div>
+                    <span className="activity-row__3d">◆ Interactive 3D scene</span>
                   </div>
                   <div className="activity-row__action">
                     <span className="price">₹{a.pricePerPerson.toLocaleString('en-IN')}</span>

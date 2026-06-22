@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getDestinationBySlug } from '@/data/destinations';
 import { usePlatformStore } from '@/lib/store';
+import { ActivityScene } from '@/experience/activities/ActivityScene';
 
 export default function Booking() {
   const { slug, activityId } = useParams<{ slug: string; activityId: string }>();
@@ -63,13 +64,17 @@ export default function Booking() {
     <div className="booking">
       <Link to={`/destination/${dest.slug}`} className="booking__back">← {dest.name}</Link>
       <div className="booking__grid">
-        <div className="booking__summary" style={{ backgroundImage: `linear-gradient(180deg, rgba(5,7,13,.35), rgba(5,7,13,.8)), url(${dest.image})` }}>
-          <span className="eyebrow">{dest.region}</span>
-          <h1>{activity.name}</h1>
-          <p>{activity.description}</p>
-          <div className="booking__facts">
-            <span>⏱ {activity.durationHours}h</span>
-            <span className={`difficulty difficulty--${activity.difficulty}`}>{activity.difficulty}</span>
+        <div className="booking__summary">
+          {/* Bespoke 3D scene for this activity */}
+          <ActivityScene sceneType={activity.sceneType} />
+          <div className="booking__summary-text">
+            <span className="eyebrow">{dest.region}</span>
+            <h1>{activity.name}</h1>
+            <p>{activity.description}</p>
+            <div className="booking__facts">
+              <span>⏱ {activity.durationHours}h</span>
+              <span className={`difficulty difficulty--${activity.difficulty}`}>{activity.difficulty}</span>
+            </div>
           </div>
         </div>
 

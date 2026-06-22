@@ -139,6 +139,49 @@
     }
   }
 
+  &__media {
+    margin-top: 1.8rem;
+    display: grid;
+    gap: 0.8rem;
+    max-width: 100%;
+
+    &--single {
+      grid-template-columns: minmax(0, 360px);
+    }
+    &--pair {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      max-width: 460px;
+    }
+    .scene--right & {
+      margin-left: auto;
+    }
+    .scene--center & {
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+
+  &__photo {
+    margin: 0;
+    border-radius: var(--radius-lg, 16px);
+    overflow: hidden;
+    border: 1px solid var(--line-strong);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+    background: rgba(255, 255, 255, 0.04);
+    aspect-ratio: 4 / 3;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s var(--ease);
+    }
+    &:hover img {
+      transform: scale(1.06);
+    }
+  }
+
   &__cta {
     margin-top: 2.4rem;
     display: flex;
@@ -335,6 +378,29 @@
     &:hover {
       color: var(--accent);
     }
+  }
+}
+
+/* ---- In-flight cloud transitions ----------------------------------------- */
+.flight-clouds {
+  position: fixed;
+  inset: 0;
+  z-index: 22; // above the plane (20), below the nav (30)
+  overflow: hidden;
+  pointer-events: none;
+
+  &__band {
+    position: absolute;
+    top: -20%;
+    left: -30%;
+    width: 160%;
+    height: 140%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0;
+    will-change: transform, opacity;
+    mix-blend-mode: screen;
   }
 }
 
