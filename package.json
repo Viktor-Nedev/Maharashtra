@@ -1,0 +1,38 @@
+{
+  "name": "maharashtra-cinematic",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Maharashtra — a cinematic 3D travel platform for adventure tourism",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-three/drei": "^9.114.0",
+    "@react-three/fiber": "^8.17.10",
+    "@react-three/postprocessing": "^2.16.3",
+    "@supabase/supabase-js": "^2.45.4",
+    "framer-motion": "^11.11.0",
+    "gsap": "^3.12.5",
+    "mapbox-gl": "^3.7.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2",
+    "three": "^0.169.0",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/mapbox-gl": "^3.4.0",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
+    "@types/three": "^0.169.0",
+    "@vitejs/plugin-react": "^4.3.2",
+    "sass": "^1.79.4",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8"
+  }
+}

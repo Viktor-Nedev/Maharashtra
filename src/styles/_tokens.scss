@@ -1,0 +1,33 @@
+// Design tokens — dark, atmospheric, premium travel brand.
+:root {
+  --bg: #05070d;
+  --bg-soft: #0a0e18;
+  --surface: #11161f;
+  --surface-2: #161d2a;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+
+  --text: #f4f6fb;
+  --text-dim: #aab3c5;
+  --text-faint: #6b7488;
+
+  --accent: #ff7a3d;
+  --accent-soft: #ffb066;
+  --accent-glow: rgba(255, 122, 61, 0.5);
+  --cool: #5e7bff;
+  --cool-soft: #8fa6ff;
+
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-lg: 28px;
+
+  --maxw: 1240px;
+  --nav-h: 76px;
+
+  --font-sans: 'Sora', system-ui, -apple-system, sans-serif;
+  --font-display: 'Syne', 'Sora', sans-serif;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 40px -8px var(--accent-glow);
+}
