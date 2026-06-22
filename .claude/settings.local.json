@@ -4,7 +4,10 @@
       "PowerShell(npm *)",
       "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 60)",
       "PowerShell(npx vite build 2>&1 | Select-Object -Last 40)",
-      "Bash(taskkill //F //IM node.exe)"
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(ls -1 public)",
+      "Bash(ls -1 src/assets)",
+      "Bash(find . -path ./node_modules -prune -o -iname \"header*\" -print)"
     ]
   }
 }

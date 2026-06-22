@@ -54,6 +54,21 @@ export function MapboxFlight() {
 
     map.on('style.load', () => {
       window.clearTimeout(readyFallback);
+      map.resize();
+
+      // Satellite imagery. The custom Studio style is currently empty (no sources
+      // or layers), so we inject Mapbox's raster satellite source + layer here to
+      // guarantee a real satellite map renders. If the style later defines its own
+      // imagery, this just sits beneath it.
+      if (!map.getSource('satellite')) {
+        map.addSource('satellite', {
+          type: 'raster',
+          url: 'mapbox://mapbox.satellite',
+          tileSize: 256,
+        });
+        map.addLayer({ id: 'satellite', type: 'raster', source: 'satellite' });
+      }
+
       // 3D terrain (skip if the custom style already provides a DEM source).
       if (!map.getSource('dem')) {
         map.addSource('dem', {

@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MapboxFlight } from '@/experience/MapboxFlight';
@@ -11,12 +11,19 @@ import { useScrollStore } from '@/lib/scrollStore';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CloudIntro } from './CloudIntro';
 import { FlightClouds } from './FlightClouds';
-import { ScrollProgress } from './ScrollProgress';
 
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
   const lowPower = useLowPower();
   const ready = useScrollStore((s) => s.ready);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useCinematicScroll(containerRef);
 
@@ -27,10 +34,9 @@ export default function Home() {
       <PlaneOverlay lowPower={lowPower} />
       {!lowPower && <FlightClouds />}
       <CloudIntro ready={ready} />
-      <ScrollProgress />
 
       {/* Floating top navigation */}
-      <header className="cinematic__nav">
+      <header className={`cinematic__nav ${scrolled ? 'is-scrolled' : ''}`}>
         <span className="brand">
           Maha<span className="brand__accent">rashtra</span>
         </span>
@@ -45,12 +51,59 @@ export default function Home() {
         </nav>
       </header>
 
+      {/* Hero header banner (image background + title) */}
+      <section className="cinematic__hero">
+        <div className="cinematic__hero-inner">
+          <h1 className="cinematic__hero-title">MAHARASHTRA</h1>
+          <span className="cinematic__hero-sub">Fly through adventures</span>
+        </div>
+      </section>
+
       {/* Scroll-driven landmark overlay */}
       <main className="cinematic__scroll" ref={containerRef}>
         {LANDMARKS.map((lm, i) => {
           const dest = lm.destinationSlug ? getDestinationBySlug(lm.destinationSlug) : undefined;
           const isFirst = i === 0;
           const isLast = i === LANDMARKS.length - 1;
+          // The opening scene gets a roomy split layout: copy on one side, a big
+          // hero photo on the other.
+          if (isFirst) {
+            return (
+              <section key={lm.id} className="scene scene--intro" data-scene={lm.id}>
+                <motion.div
+                  className="scene__inner scene__inner--intro"
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ margin: '-20% 0px -20% 0px', once: false }}
+                  transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <div className="intro__text">
+                    <span className="scene__kicker">{lm.kicker}</span>
+                    <h1 className="scene__title intro__title">
+                      <span className="scene__title-line">Explore Maharashtra</span>
+                      <span className="scene__title-line">Like Never Before</span>
+                    </h1>
+                    <p className="scene__body">{lm.body}</p>
+                    <div className="scene__cta">
+                      <a href="#enter" className="btn btn--primary btn--lg">
+                        Begin the Flight
+                      </a>
+                      <Link to="/explore" className="btn btn--ghost">
+                        Skip to Booking
+                      </Link>
+                    </div>
+                  </div>
+
+                  {lm.images?.[0] && (
+                    <figure className="intro__media">
+                      <img src={lm.images[0]} alt={lm.name} decoding="async" />
+                    </figure>
+                  )}
+                </motion.div>
+              </section>
+            );
+          }
+
           return (
             <section key={lm.id} className={`scene scene--${lm.align}`} data-scene={lm.id}>
               <motion.div
@@ -62,14 +115,7 @@ export default function Home() {
               >
                 <span className="scene__kicker">{lm.kicker}</span>
                 <h1 className="scene__title">
-                  {isFirst ? (
-                    <>
-                      <span className="scene__title-line">Explore Maharashtra</span>
-                      <span className="scene__title-line">Like Never Before</span>
-                    </>
-                  ) : (
-                    <span className="scene__title-line">{lm.name}</span>
-                  )}
+                  <span className="scene__title-line">{lm.name}</span>
                 </h1>
                 <p className="scene__body">{lm.body}</p>
 
@@ -89,17 +135,6 @@ export default function Home() {
                       <li key={a.id}>{a.name}</li>
                     ))}
                   </ul>
-                )}
-
-                {isFirst && (
-                  <div className="scene__cta">
-                    <a href="#enter" className="btn btn--primary">
-                      Begin the Flight
-                    </a>
-                    <Link to="/explore" className="btn btn--ghost">
-                      Skip to Booking
-                    </Link>
-                  </div>
                 )}
 
                 {dest && (

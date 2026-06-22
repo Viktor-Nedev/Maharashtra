@@ -13,43 +13,66 @@ import { useScrollStore } from '@/lib/scrollStore';
  */
 function Plane({ lowPower }: { lowPower: boolean }) {
   const group = useRef<THREE.Group>(null);
-  const state = useRef({ prev: 0, bank: 0, vel: 0 });
+  // ep = eased flight progress (lags the raw scroll a touch, exactly like the map
+  // camera, so plane + terrain glide together instead of snapping).
+  const state = useRef({ ep: 0, prev: 0, bank: 0, vel: 0 });
+  const baseScale = lowPower ? 0.42 : 0.5;
 
   useFrame((s, dt) => {
     if (!group.current) return;
-    const p = useScrollStore.getState().progress;
+    const target = useScrollStore.getState().progress;
 
-    // Scroll velocity → banking.
+    // Ease toward the scroll target → smooth, buttery flight transition.
+    state.current.ep += (target - state.current.ep) * Math.min(1, dt * 3.2);
+    const p = state.current.ep;
+
+    // Scroll velocity (from the eased value) → banking.
     const raw = (p - state.current.prev) / Math.max(dt, 0.001);
     state.current.prev = p;
     state.current.vel += (raw - state.current.vel) * Math.min(1, dt * 6);
 
     const t = s.clock.elapsedTime;
 
-    // Descend from the top of the viewport toward the bottom across the scroll.
-    const descend = THREE.MathUtils.smoothstep(p, 0, 0.9);
-    // Peel-off near the very end of the page (0.88 → 1).
-    const exit = THREE.MathUtils.smoothstep(p, 0.88, 1);
+    // Flight phases ---------------------------------------------------------
+    // enter  : fly in from below + far away at the first destination.
+    // turn   : pivot from facing the viewer to flying forward into the scene.
+    // descend: gentle drop toward the lower sections across the scroll.
+    // exit   : bank hard and peel off to the right into the distance.
+    const enter = THREE.MathUtils.smoothstep(p, 0.0, 0.09);
+    const turn = THREE.MathUtils.smoothstep(p, 0.05, 0.24);
+    const descend = THREE.MathUtils.smoothstep(p, 0.12, 0.9);
+    const exit = THREE.MathUtils.smoothstep(p, 0.9, 1.0);
 
-    // Position: gentle horizontal weave + vertical descent, then sweep off to the
-    // right and into the distance on exit.
-    const x = 0.4 + Math.sin(p * Math.PI * 3) * 1.1 + exit * exit * 13;
-    const y = THREE.MathUtils.lerp(3.4, -1.4, descend) + Math.sin(t * 1.2) * 0.12 + exit * 3.4;
-    const z = exit * -5;
+    // Position --------------------------------------------------------------
+    const weave = Math.sin(p * Math.PI * 3) * 1.2 * turn;
+    const x = weave + exit * exit * 15; // sweep off to the right on exit
+    const y =
+      THREE.MathUtils.lerp(1.3, -1.5, descend) +
+      Math.sin(t * 1.2) * 0.12 +
+      (1 - enter) * -5.5 + // start well below the frame, rise into place
+      exit * 3.2; // climb away on exit
+    const z = (1 - enter) * -12 + exit * -7; // arrive from afar, recede on exit
     group.current.position.set(x, y, z);
 
+    // Grow in from the distance as it appears.
+    group.current.scale.setScalar(baseScale * (0.4 + 0.6 * enter));
+
     // Banking from scroll velocity, plus a hard roll into the exit turn.
-    const targetBank = THREE.MathUtils.clamp(state.current.vel * -2.0, -0.6, 0.6) - exit * 1.0;
+    const targetBank =
+      THREE.MathUtils.clamp(state.current.vel * -2.2, -0.6, 0.6) * turn - exit * 1.0;
     state.current.bank += (targetBank - state.current.bank) * Math.min(1, dt * 4);
 
-    // Nose-down pitch while descending; pull up + yaw away as it peels off.
-    const pitch = 0.12 + descend * 0.16 + Math.sin(t * 1.1) * 0.02 - exit * 0.45;
-    const yaw = Math.sin(t * 0.5) * 0.04 - exit * 1.1;
+    // Yaw: face the camera (π) at the start, rotate to fly forward, weave between
+    // sections, then yaw away on exit.
+    const yaw =
+      THREE.MathUtils.lerp(Math.PI, 0, turn) + Math.sin(p * Math.PI * 4) * 0.22 * turn - exit * 1.2;
+    // Pitch: level while greeting the viewer, nose-down descending, pull up on exit.
+    const pitch = turn * (0.1 + descend * 0.24) + Math.sin(t * 1.1) * 0.02 - exit * 0.45;
     group.current.rotation.set(pitch, yaw, state.current.bank + Math.sin(t * 0.8) * 0.03);
   });
 
   return (
-    <group ref={group} scale={lowPower ? 0.42 : 0.5}>
+    <group ref={group} scale={baseScale}>
       <Airplane />
     </group>
   );
