@@ -241,12 +241,34 @@
     letter-spacing: clamp(0.01em, 0.3vw, 0.05em);
     /* balance the trailing letter-spacing so the word stays optically centred */
     padding-left: clamp(0.01em, 0.3vw, 0.05em);
-    background: linear-gradient(180deg, #ffffff 0%, #ffe0bd 58%, var(--accent) 130%);
+    /* Warm gradient with a bright band that drifts across for a continuous
+       shimmer/sheen over the clipped text. */
+    background: linear-gradient(
+      100deg,
+      #fff 0%,
+      #ffe0bd 26%,
+      #ffffff 42%,
+      #ffd29a 58%,
+      var(--accent) 86%,
+      #ffe0bd 100%
+    );
+    background-size: 230% 100%;
+    background-position: 0% 0;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     filter: drop-shadow(0 10px 44px rgba(0, 0, 0, 0.6));
-    animation: hero-reveal 1.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    /* entrance reveal once, then an endless gentle shine + float */
+    animation:
+      hero-reveal 1.5s cubic-bezier(0.16, 1, 0.3, 1) both,
+      hero-shine 7s ease-in-out 1.6s infinite,
+      hero-float 6s ease-in-out 1.6s infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &-title {
+      animation: hero-reveal 1.5s ease both;
+    }
   }
 
   &-sub {
@@ -287,6 +309,30 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Endless shimmer sweeping the gradient sheen across the title. */
+@keyframes hero-shine {
+  0% {
+    background-position: 0% 0;
+  }
+  50% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0% 0;
+  }
+}
+
+/* Gentle vertical float so the title feels alive. */
+@keyframes hero-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
   }
 }
 

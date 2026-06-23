@@ -116,41 +116,30 @@ export const LANDMARK_COUNT = LANDMARKS.length;
 
 const ROUTE: [number, number][] = LANDMARKS.map((l) => l.coordinates);
 
-// Cumulative (equirectangular-approx) segment lengths for even-speed travel.
-function segLen(a: [number, number], b: [number, number]): number {
-  const dx = (b[0] - a[0]) * Math.cos(((a[1] + b[1]) / 2) * (Math.PI / 180));
-  const dy = b[1] - a[1];
-  return Math.hypot(dx, dy);
-}
-
-const CUM: number[] = (() => {
-  const c = [0];
-  for (let i = 1; i < ROUTE.length; i++) c.push(c[i - 1] + segLen(ROUTE[i - 1], ROUTE[i]));
-  return c;
-})();
-const TOTAL = CUM[CUM.length - 1];
-
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
 
-/** Point on the route polyline at fraction t (0..1), by arc length. */
+/**
+ * Point on the route at fraction t (0..1), interpolated by LANDMARK INDEX (not
+ * arc length). This is deliberate: each homepage section is one viewport tall, so
+ * section i is centred at scroll progress t = i/(N-1). Mapping by index means the
+ * camera is exactly over landmark i when section i is centred — the place on the
+ * map always matches the active section. (Arc-length mapping drifted the two
+ * apart because landmarks aren't evenly spaced.)
+ */
 export function routePointAt(t: number): [number, number] {
-  const d = Math.max(0, Math.min(1, t)) * TOTAL;
-  for (let i = 1; i < CUM.length; i++) {
-    if (d <= CUM[i]) {
-      const seg = CUM[i] - CUM[i - 1] || 1;
-      const f = (d - CUM[i - 1]) / seg;
-      return [lerp(ROUTE[i - 1][0], ROUTE[i][0], f), lerp(ROUTE[i - 1][1], ROUTE[i][1], f)];
-    }
-  }
-  return ROUTE[ROUTE.length - 1];
+  const scaled = Math.max(0, Math.min(1, t)) * (ROUTE.length - 1);
+  const i = Math.floor(scaled);
+  if (i >= ROUTE.length - 1) return ROUTE[ROUTE.length - 1];
+  const f = scaled - i;
+  return [lerp(ROUTE[i][0], ROUTE[i + 1][0], f), lerp(ROUTE[i][1], ROUTE[i + 1][1], f)];
 }
 
 /** Camera altitude in metres at fraction t — descends from high to low. */
 export function altitudeAt(t: number): number {
-  const HIGH = 4200;
-  const LOW = 1500;
+  const HIGH = 7000;
+  const LOW = 4200;
   // Ease so the descent accelerates toward the landing.
   const e = Math.pow(Math.max(0, Math.min(1, t)), 1.25);
   return lerp(HIGH, LOW, e);

@@ -40,6 +40,9 @@ export function MapboxFlight() {
       interactive: false, // page scroll drives the flight, not the map
       attributionControl: false,
       antialias: true,
+      // Keep a big tile cache so the whole route's satellite tiles, once warmed
+      // up at load, stay resident and the flight has no streaming lag.
+      maxTileCacheSize: 2000,
     });
     map.addControl(new mapboxgl.AttributionControl({ compact: true }));
 
@@ -64,6 +67,9 @@ export function MapboxFlight() {
       // guarantee a real satellite map renders. If the style later defines its own
       // imagery, this just sits beneath it.
       if (!map.getSource('satellite')) {
+        // Dark earth fallback so any not-yet-loaded area reads as a night map
+        // rather than showing the pale page background through the canvas.
+        map.addLayer({ id: 'bg', type: 'background', paint: { 'background-color': '#0e2038' } });
         map.addSource('satellite', {
           type: 'raster',
           url: 'mapbox://mapbox.satellite',
@@ -106,40 +112,68 @@ export function MapboxFlight() {
         new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat(lm.coordinates).addTo(map);
       });
 
-      setReady(true);
+      // Aim the camera so the LANDMARK at fraction f is centred in view. The
+      // camera sits a fixed *metric* distance behind the target (derived from the
+      // local route bearing) at the current altitude, giving a steady ~56°
+      // downward pitch regardless of how long each route segment is. Looking AT
+      // the active place (rather than ahead of it) is what makes each section line
+      // up with the exact spot on the map.
+      const aim = (f: number) => {
+        const target = routePointAt(f);
+        const alt = altitudeAt(f);
+        const a = routePointAt(Math.max(0, f - 0.0012));
+        const b = routePointAt(Math.min(1, f + 0.0012));
+        const cosLat = Math.max(0.05, Math.cos((target[1] * Math.PI) / 180));
+        let dx = (b[0] - a[0]) * 111320 * cosLat;
+        let dy = (b[1] - a[1]) * 110540;
+        const len = Math.hypot(dx, dy) || 1;
+        dx /= len;
+        dy /= len;
+        const D = alt * 1.5; // back-offset → ~56° pitch
+        const camLngLat: [number, number] = [
+          target[0] - (dx * D) / (111320 * cosLat),
+          target[1] - (dy * D) / 110540,
+        ];
+        const cam = map.getFreeCameraOptions();
+        cam.position = mapboxgl.MercatorCoordinate.fromLngLat(camLngLat, alt);
+        cam.lookAtPoint(target);
+        map.setFreeCameraOptions(cam);
+      };
 
-      // Only re-aim the camera when the eased progress actually moves. Pushing
-      // free-camera options every single frame (even when settled) makes
-      // mapbox-gl continuously re-evaluate and ABORT in-flight satellite tiles,
-      // so the imagery never finishes loading and the map looks blank. Snapping
-      // when close + skipping no-op updates lets the tiles load once you stop.
+      // Only re-aim when the eased progress actually moves. Pushing free-camera
+      // options every frame (even when settled) makes mapbox-gl re-evaluate and
+      // ABORT in-flight tiles, so imagery never resolves.
       let applied = -1;
       const tick = () => {
-        const target = useScrollStore.getState().progress;
-        eased += (target - eased) * 0.1;
-        if (Math.abs(target - eased) < 0.0003) eased = target;
-
+        const targetP = useScrollStore.getState().progress;
+        eased += (targetP - eased) * 0.14;
+        if (Math.abs(targetP - eased) < 0.0003) eased = targetP;
         if (Math.abs(eased - applied) > 0.00004) {
           applied = eased;
-          const ground = routePointAt(eased);
-          const alt = altitudeAt(eased);
-          // Scale the look-ahead with altitude so the camera holds a ~55-60°
-          // downward pitch instead of staring at the horizon. This keeps the
-          // satellite terrain filling the frame AND keeps the visible area small
-          // enough that its tiles actually finish loading (a horizon-ward pitch
-          // needs hundreds of tiles and never resolves → blank map).
-          const lookFrac = Math.min(0.014, Math.max(0.004, alt / 350000));
-          const look = routePointAt(Math.min(1, eased + lookFrac));
-
-          const cam = map.getFreeCameraOptions();
-          cam.position = mapboxgl.MercatorCoordinate.fromLngLat(ground, alt);
-          cam.lookAtPoint(look);
-          map.setFreeCameraOptions(cam);
+          aim(eased);
         }
-
         raf = requestAnimationFrame(tick);
       };
-      raf = requestAnimationFrame(tick);
+
+      // Pre-warm a low-zoom OVERVIEW of the whole region first. Those few coarse
+      // tiles become the parent tiles under every flight position, so the map is
+      // always covered by (at worst) a blurry satellite parent that sharpens as
+      // detail streams — never a transparent/blank gap. Flying high (altitudeAt)
+      // also keeps each view's tile count low so detail arrives fast, and
+      // maxTileCacheSize keeps everything resident once seen.
+      map.jumpTo({ center: [73.7, 18.4], zoom: 6.3, pitch: 0, bearing: 0 });
+
+      const reveal = () => {
+        setReady(true);
+        aim(0);
+        applied = -1;
+        raf = requestAnimationFrame(tick);
+      };
+      const cap = window.setTimeout(reveal, 3000);
+      map.once('idle', () => {
+        window.clearTimeout(cap);
+        reveal();
+      });
     });
 
     return () => {
