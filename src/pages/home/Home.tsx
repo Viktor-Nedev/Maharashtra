@@ -9,14 +9,13 @@ import { useCinematicScroll } from '@/hooks/useCinematicScroll';
 import { useLowPower } from '@/hooks/useMediaQuery';
 import { useScrollStore } from '@/lib/scrollStore';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { Loader3D } from '@/components/Loader3D';
+import { CloudIntro } from './CloudIntro';
 import { FlightClouds } from './FlightClouds';
 
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
   const lowPower = useLowPower();
   const ready = useScrollStore((s) => s.ready);
-  const preloadProgress = useScrollStore((s) => s.preloadProgress);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -34,7 +33,7 @@ export default function Home() {
       <MapboxFlight />
       <PlaneOverlay lowPower={lowPower} />
       {!lowPower && <FlightClouds />}
-      <Loader3D visible={!ready} progress={preloadProgress} />
+      <CloudIntro ready={ready} />
 
       {/* Floating top navigation */}
       <header className={`cinematic__nav ${scrolled ? 'is-scrolled' : ''}`}>

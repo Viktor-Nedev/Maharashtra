@@ -861,31 +861,136 @@
 }
 
 /* ===========================================================================
-   Auth — login / register pages
+   Auth — split layout: form left, destination photo right
    =========================================================================== */
-.auth-page {
-  min-height: 100vh;
+.auth-split {
   display: grid;
-  place-items: center;
-  padding: 2rem 1rem;
-  background: radial-gradient(ellipse at 50% 30%, #0e1e3a, var(--bg) 70%);
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    .auth-split__image-side { display: none; }
+  }
+
+  &__form-side {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    background: var(--bg);
+  }
+
+  &__form-inner {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  &__brand {
+    display: inline-block;
+    margin-bottom: 2.4rem;
+    font-size: 1.3rem;
+  }
+
+  &__heading {
+    margin-bottom: 2rem;
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.7rem, 3.5vw, 2.4rem);
+      font-weight: 800;
+      margin: 0 0 0.45rem;
+    }
+    p { color: var(--text-dim); font-size: 0.97rem; margin: 0; }
+  }
+
+  &__footer {
+    margin-top: 1.6rem;
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
+  &__link {
+    color: var(--accent-soft);
+    font-weight: 600;
+    &:hover { text-decoration: underline; }
+  }
+
+  &__done {
+    text-align: center;
+    padding: 2rem 0;
+    &-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+      color: #fff;
+      font-size: 1.6rem;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 1rem;
+    }
+    h2 { margin: 0 0 0.4rem; font-size: 1.5rem; }
+    p { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+  }
+
+  /* Right photo panel */
+  &__image-side {
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+
+    /* subtle zoom-in on load */
+    animation: auth-img-zoom 12s ease-in-out infinite alternate;
+  }
+
+  &__image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(5, 7, 13, 0.15) 0%,
+      rgba(5, 7, 13, 0.55) 60%,
+      rgba(5, 7, 13, 0.82) 100%
+    );
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 2.8rem;
+    gap: 1.4rem;
+  }
+
+  blockquote {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1rem, 2vw, 1.3rem);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.92);
+    line-height: 1.55;
+    font-style: italic;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+    max-width: 38ch;
+  }
+
+  &__image-dots {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  &__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    transition: background 0.3s;
+    &--active { background: var(--accent); }
+  }
 }
 
-.auth-card {
-  width: 100%;
-  max-width: 420px;
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-lg);
-  padding: 2.4rem 2.4rem 2rem;
-  box-shadow: var(--shadow);
-
-  &__brand { display: block; margin-bottom: 1.8rem; }
-  h1 { font-size: 1.9rem; margin: 0 0 0.3rem; }
-  &__sub { color: var(--text-dim); margin-bottom: 1.8rem; font-size: 0.95rem; }
-  &__footer { margin-top: 1.4rem; text-align: center; color: var(--text-dim); font-size: 0.88rem; }
-  &__link { color: var(--accent-soft); font-weight: 600; }
-  &__done { text-align: center; padding: 1.4rem 0; .booking__check { font-size: 2.4rem; } p { color: var(--text-dim); } }
+@keyframes auth-img-zoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.06); }
 }
 
 .auth-form {

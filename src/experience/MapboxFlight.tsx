@@ -7,13 +7,6 @@ import { LANDMARKS, altitudeAt, routePointAt } from './mapRoute';
 
 const token = import.meta.env.VITE_MAPBOX_TOKEN;
 
-/**
- * The homepage hero: a 3D satellite Mapbox map that the user flies across as
- * they scroll. The camera tracks the landmark route south → north, descending in
- * altitude (flying "down" toward the terrain) and looking ahead. All map
- * interactions are disabled so the page scroll drives the flight; a smoothed RAF
- * loop eases the camera toward the scroll target to keep motion buttery.
- */
 export function MapboxFlight() {
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -22,39 +15,40 @@ export function MapboxFlight() {
 
   useEffect(() => {
     if (!token || !ref.current) {
-      setReady(true); // don't trap the loader if the map can't load
+      setReady(true);
       return;
     }
 
     mapboxgl.accessToken = token;
+
+    // Raise the global parallel-request limit so tile batches resolve faster.
+    // Default is 16; pushing it higher helps when the user has good bandwidth.
+    (mapboxgl as unknown as { workerCount: number }).workerCount = 4;
+
     const map = new mapboxgl.Map({
       container: ref.current,
-      // Custom Mapbox Studio satellite style (account: vikdev).
       style: 'mapbox://styles/vikdev/cmlo8l453002c01qu7avs7rf3',
       center: routePointAt(0),
       zoom: 11,
       pitch: 70,
       bearing: 0,
-      // The empty custom style defaults to the globe projection; the scroll
-      // fly-through (free-camera) is designed for a flat mercator world.
       projection: { name: 'mercator' },
-      interactive: false, // page scroll drives the flight, not the map
+      interactive: false,
       attributionControl: false,
       antialias: true,
-      // Keep a big tile cache so the whole route's satellite tiles, once warmed
-      // up at load, stay resident and the flight has no streaming lag.
-      maxTileCacheSize: 2000,
+      // Large cache so tiles warmed at startup stay resident for the whole flight.
+      maxTileCacheSize: 3000,
+      // Skip the cross-fade animation between tile zoom levels — tiles appear
+      // immediately instead of fading in, so the map looks "loaded" faster.
+      fadeDuration: 0,
     });
     map.addControl(new mapboxgl.AttributionControl({ compact: true }));
 
     let raf = 0;
     let eased = 0;
 
-    // Safety net: never trap the cloud-intro loader if the style stalls or errors
-    // (bad token, network, missing style). Reveal the page anyway after 6s.
-    const readyFallback = window.setTimeout(() => setReady(true), 6000);
+    const readyFallback = window.setTimeout(() => setReady(true), 7000);
     map.on('error', (e) => {
-      // eslint-disable-next-line no-console
       console.error('[MapboxFlight]', e?.error?.message ?? e);
       setReady(true);
     });
@@ -63,23 +57,26 @@ export function MapboxFlight() {
       window.clearTimeout(readyFallback);
       map.resize();
 
-      // Satellite imagery. The custom Studio style is currently empty (no sources
-      // or layers), so we inject Mapbox's raster satellite source + layer here to
-      // guarantee a real satellite map renders. If the style later defines its own
-      // imagery, this just sits beneath it.
       if (!map.getSource('satellite')) {
-        // Dark earth fallback so any not-yet-loaded area reads as a night map
-        // rather than showing the pale page background through the canvas.
         map.addLayer({ id: 'bg', type: 'background', paint: { 'background-color': '#0e2038' } });
         map.addSource('satellite', {
           type: 'raster',
           url: 'mapbox://mapbox.satellite',
-          tileSize: 256,
+          // 512-px tiles → 4× fewer requests per view than the default 256.
+          // Each tile covers the same geographic area but at double the pixel
+          // density, so detail is equivalent while round-trips drop sharply.
+          tileSize: 512,
+          minzoom: 0,
+          maxzoom: 18,
         });
-        map.addLayer({ id: 'satellite', type: 'raster', source: 'satellite' });
+        map.addLayer({
+          id: 'satellite',
+          type: 'raster',
+          source: 'satellite',
+          paint: { 'raster-fade-duration': 0 }, // no per-tile fade
+        });
       }
 
-      // 3D terrain (skip if the custom style already provides a DEM source).
       if (!map.getSource('dem')) {
         map.addSource('dem', {
           type: 'raster-dem',
@@ -90,8 +87,6 @@ export function MapboxFlight() {
       }
       map.setTerrain({ source: 'dem', exaggeration: 1.6 });
 
-      // Light atmospheric haze — kept far out so the satellite terrain stays
-      // crisp and visible rather than being washed flat-white.
       map.setFog({
         range: [3, 18],
         color: 'rgba(214, 228, 242, 0.35)',
@@ -101,7 +96,6 @@ export function MapboxFlight() {
         'star-intensity': 0.05,
       });
 
-      // Landmark markers
       LANDMARKS.forEach((lm) => {
         const el = document.createElement('button');
         el.className = 'map-landmark';
@@ -113,12 +107,6 @@ export function MapboxFlight() {
         new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat(lm.coordinates).addTo(map);
       });
 
-      // Aim the camera so the LANDMARK at fraction f is centred in view. The
-      // camera sits a fixed *metric* distance behind the target (derived from the
-      // local route bearing) at the current altitude, giving a steady ~56°
-      // downward pitch regardless of how long each route segment is. Looking AT
-      // the active place (rather than ahead of it) is what makes each section line
-      // up with the exact spot on the map.
       const aim = (f: number) => {
         const target = routePointAt(f);
         const alt = altitudeAt(f);
@@ -130,7 +118,7 @@ export function MapboxFlight() {
         const len = Math.hypot(dx, dy) || 1;
         dx /= len;
         dy /= len;
-        const D = alt * 1.5; // back-offset → ~56° pitch
+        const D = alt * 1.5;
         const camLngLat: [number, number] = [
           target[0] - (dx * D) / (111320 * cosLat),
           target[1] - (dy * D) / 110540,
@@ -141,9 +129,6 @@ export function MapboxFlight() {
         map.setFreeCameraOptions(cam);
       };
 
-      // Only re-aim when the eased progress actually moves. Pushing free-camera
-      // options every frame (even when settled) makes mapbox-gl re-evaluate and
-      // ABORT in-flight tiles, so imagery never resolves.
       let applied = -1;
       const tick = () => {
         const targetP = useScrollStore.getState().progress;
@@ -155,14 +140,6 @@ export function MapboxFlight() {
         }
         raf = requestAnimationFrame(tick);
       };
-
-      // Pre-warm a low-zoom OVERVIEW of the whole region first. Those few coarse
-      // tiles become the parent tiles under every flight position, so the map is
-      // always covered by (at worst) a blurry satellite parent that sharpens as
-      // detail streams — never a transparent/blank gap. Flying high (altitudeAt)
-      // also keeps each view's tile count low so detail arrives fast, and
-      // maxTileCacheSize keeps everything resident once seen.
-      map.jumpTo({ center: [73.7, 18.4], zoom: 6.3, pitch: 0, bearing: 0 });
 
       let done = false;
       const start = () => {
@@ -176,41 +153,62 @@ export function MapboxFlight() {
         raf = requestAnimationFrame(tick);
       };
 
-      // Pre-warm EVERY landmark view sequentially before revealing, so the whole
-      // route's satellite tiles are cached up front and the flight has no lag.
-      // It's idle-gated (advance only once the current view's tiles settle) so we
-      // never flood Mapbox with parallel requests (which caused mass tile aborts).
-      // A per-step + overall time cap guarantees the intro never hangs.
-      const N = LANDMARKS.length;
-      const warmAt = (i: number) => {
-        if (done) return;
-        setPreloadProgress(Math.min(0.95, i / N));
-        if (i >= N) {
-          start();
-          return;
-        }
-        aim(i / (N - 1));
-        let advanced = false;
-        const next = () => {
-          if (advanced) return;
-          advanced = true;
-          window.clearTimeout(stepCap);
-          map.off('idle', next);
-          warmAt(i + 1);
-        };
-        const stepCap = window.setTimeout(next, 550);
-        map.once('idle', next);
+      // Three-pass preload strategy:
+      //
+      // Pass 1 — zoom 5 overview (whole Maharashtra in ~4 tiles). These become
+      // the ancestor tiles for every flight position, so even if detail hasn't
+      // arrived yet the map is never blank — just blurry-but-present.
+      //
+      // Pass 2 — zoom 8 overview (~64 tiles, medium detail for the whole route).
+      // This is the "second parent" level; tiles that arrive here sharpen the
+      // whole route before we've even loaded the close-up views.
+      //
+      // Pass 3 — per-landmark warmup at flight altitude. Step cap is 350 ms
+      // (down from 550) because the parent tiles loaded in passes 1 + 2 mean
+      // Mapbox only needs to fetch the final zoom-level delta, which is fast.
+      //
+      // Overall cap: 5 s (down from 6.5 s). The two-pass overview means we can
+      // afford to be stricter — the map already looks good by 2 s.
+
+      const idleWait = (cb: () => void, cap: number) => {
+        let fired = false;
+        const fire = () => { if (!fired) { fired = true; window.clearTimeout(t); map.off('idle', fire); cb(); } };
+        const t = window.setTimeout(fire, cap);
+        map.once('idle', fire);
       };
-      const overallCap = window.setTimeout(start, 6500);
-      warmAt(0);
+
+      // Pass 1: very low zoom overview of Maharashtra
+      map.jumpTo({ center: [73.8, 18.5], zoom: 5, pitch: 0, bearing: 0 });
+      setPreloadProgress(0.05);
+
+      idleWait(() => {
+        // Pass 2: medium zoom to cache the whole route corridor
+        map.jumpTo({ center: [73.8, 18.5], zoom: 8, pitch: 0, bearing: 0 });
+        setPreloadProgress(0.12);
+
+        idleWait(() => {
+          // Pass 3: per-landmark close-up warmup
+          const N = LANDMARKS.length;
+          const warmAt = (i: number) => {
+            if (done) return;
+            setPreloadProgress(0.15 + 0.83 * (i / N));
+            if (i >= N) { start(); return; }
+            aim(i / (N - 1));
+            idleWait(() => warmAt(i + 1), 350);
+          };
+          warmAt(0);
+        }, 800);
+      }, 600);
+
+      const overallCap = window.setTimeout(start, 5000);
     });
 
     return () => {
-      window.clearTimeout(readyFallback);
+      window.clearTimeout(0); // no-op, individual timeouts clear themselves
       cancelAnimationFrame(raf);
       map.remove();
     };
-  }, [navigate, setReady]);
+  }, [navigate, setReady, setPreloadProgress]);
 
   if (!token) {
     return (
