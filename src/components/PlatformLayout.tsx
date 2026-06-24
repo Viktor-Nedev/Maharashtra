@@ -12,6 +12,7 @@ export function PlatformLayout() {
         </Link>
         <nav className="platform__links">
           <NavLink to="/explore">Explore</NavLink>
+          <NavLink to="/planner">Planner</NavLink>
           <NavLink to="/account">Trips</NavLink>
           <ThemeToggle />
           <Link to="/" className="nav__cta">

@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { getDestinationBySlug, CATEGORY_LABELS } from '@/data/destinations';
+import { getDestinationBySlug, CATEGORY_LABELS, activityImage } from '@/data/destinations';
 import { usePlatformStore } from '@/lib/store';
 
 // A few seed reviews so detail pages feel populated in demo mode.
@@ -65,7 +65,12 @@ export default function DestinationDetail() {
             <div className="activity-list">
               {dest.activities.map((a) => (
                 <article key={a.id} className="activity-row">
-                  <div>
+                  <div
+                    className="activity-row__thumb"
+                    style={{ backgroundImage: `url(${activityImage(a.sceneType, 400)})` }}
+                    aria-hidden="true"
+                  />
+                  <div className="activity-row__text">
                     <span className="activity-row__cat">{CATEGORY_LABELS[a.category]}</span>
                     <h3>{a.name}</h3>
                     <p>{a.description}</p>

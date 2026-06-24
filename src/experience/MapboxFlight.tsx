@@ -163,17 +163,43 @@ export function MapboxFlight() {
       // maxTileCacheSize keeps everything resident once seen.
       map.jumpTo({ center: [73.7, 18.4], zoom: 6.3, pitch: 0, bearing: 0 });
 
-      const reveal = () => {
+      let done = false;
+      const start = () => {
+        if (done) return;
+        done = true;
+        window.clearTimeout(overallCap);
         setReady(true);
         aim(0);
         applied = -1;
         raf = requestAnimationFrame(tick);
       };
-      const cap = window.setTimeout(reveal, 3000);
-      map.once('idle', () => {
-        window.clearTimeout(cap);
-        reveal();
-      });
+
+      // Pre-warm EVERY landmark view sequentially before revealing, so the whole
+      // route's satellite tiles are cached up front and the flight has no lag.
+      // It's idle-gated (advance only once the current view's tiles settle) so we
+      // never flood Mapbox with parallel requests (which caused mass tile aborts).
+      // A per-step + overall time cap guarantees the intro never hangs.
+      const N = LANDMARKS.length;
+      const warmAt = (i: number) => {
+        if (done) return;
+        if (i >= N) {
+          start();
+          return;
+        }
+        aim(i / (N - 1));
+        let advanced = false;
+        const next = () => {
+          if (advanced) return;
+          advanced = true;
+          window.clearTimeout(stepCap);
+          map.off('idle', next);
+          warmAt(i + 1);
+        };
+        const stepCap = window.setTimeout(next, 550);
+        map.once('idle', next);
+      };
+      const overallCap = window.setTimeout(start, 6500);
+      warmAt(0);
     });
 
     return () => {

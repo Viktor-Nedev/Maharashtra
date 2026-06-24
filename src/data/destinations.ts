@@ -269,3 +269,46 @@ export const CATEGORY_LABELS: Record<ActivityCategory, string> = {
   climbing: 'Climbing',
   wildlife: 'Wildlife',
 };
+
+// A representative photo per activity scene type. Reuses Unsplash IDs (broken
+// ones fall back to a CSS gradient via onError in the UI). Keeps each activity
+// visually distinct without hand-tagging all 50+ entries.
+const SCENE_PHOTO: Record<ActivitySceneType, string> = {
+  trek: '1551632811-561732d1e306',
+  sunrise: '1469474968028-56623f02e42e',
+  camp: '1504280390367-361c6d9f38f4',
+  kayak: '1545158539-1c1c0c0c0c0c',
+  raft: '1530866495561-507c9faab2ed',
+  boat: '1507525428034-b723cf961d3e',
+  scuba: '1544551763-46a013bb70d5',
+  zipline: '1448375240586-882707db888b',
+  paraglide: '1605540436563-5bca919ae766',
+  hotair: '1507608616759-54f48f0af0ee',
+  climb: '1522163182402-834f871fd851',
+  rappel: '1551632811-561732d1e306',
+  wildlife: '1474511320723-9a56873867b5',
+  caving: '1520962880247-cfaf541c8724',
+  waterfall: '1432405972618-c60b0225b8f9',
+  fortwalk: '1506905925346-21bda4d32df4',
+  cycle: '1485965120184-e220f721d03e',
+  safari: '1516426122078-c23e76319801',
+};
+
+/** Photo URL for an activity, sized for thumbnails by default. */
+export function activityImage(sceneType: ActivitySceneType, w = 800): string {
+  return `https://images.unsplash.com/photo-${SCENE_PHOTO[sceneType]}?auto=format&fit=crop&w=${w}&q=80`;
+}
+
+/** A flat, de-duplicated showcase list: one card per scene type with a sample. */
+export const ACTIVITY_SHOWCASE = (() => {
+  const seen = new Set<ActivitySceneType>();
+  const out: { activity: Activity; destination: Destination }[] = [];
+  for (const d of DESTINATIONS) {
+    for (const a of d.activities) {
+      if (seen.has(a.sceneType)) continue;
+      seen.add(a.sceneType);
+      out.push({ activity: a, destination: d });
+    }
+  }
+  return out;
+})();
