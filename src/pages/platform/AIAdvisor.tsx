@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePlannerStore } from '@/lib/store';
+import { buildItinerary, itineraryToMarkdown } from '@/lib/itinerary';
+import { toast } from '@/lib/toastStore';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -28,9 +31,36 @@ export default function AIAdvisor() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  const { setBudgetCap, addStop, addItem } = usePlannerStore();
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  /**
+   * One-click trip builder: generates a deterministic 3-day itinerary from the
+   * destination catalogue, writes it straight into the Trip Planner (stops +
+   * budget), and drops the formatted plan into the chat. Works with or without
+   * the AI API key, so it never fails on a demo.
+   */
+  const generateItinerary = () => {
+    const it = buildItinerary({ days: 3, people: 2, budget: 25000 });
+
+    setBudgetCap(it.budget);
+    for (const day of it.days) {
+      for (const a of day.activities) {
+        addStop(`Day ${day.day} · ${a.name} (${day.destination.name})`);
+      }
+      addItem(`Day ${day.day} · ${day.destination.name}`, day.subtotal);
+    }
+
+    setMessages((prev) => [
+      ...prev,
+      { role: 'user', content: 'Generate a 3-day itinerary for 2 people under ₹25,000' },
+      { role: 'assistant', content: itineraryToMarkdown(it) },
+    ]);
+    toast('Itinerary saved to your Trip Planner ✓', 'success');
+  };
 
   const send = async (text: string) => {
     const userMsg = text.trim();
@@ -103,6 +133,12 @@ export default function AIAdvisor() {
           <span className="eyebrow">AI-powered</span>
           <h1>Maharashtra <span className="grad-text">Travel Advisor</span></h1>
           <p>Describe your dream trip and I'll match you with the perfect Maharashtra adventure.</p>
+          <div className="advisor__quick-actions">
+            <button className="btn btn--primary btn--sm" onClick={generateItinerary} disabled={streaming}>
+              ✦ Generate 3-day itinerary
+            </button>
+            <Link to="/planner" className="btn btn--ghost btn--sm">Open Trip Planner →</Link>
+          </div>
         </motion.div>
       </header>
 

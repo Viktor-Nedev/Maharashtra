@@ -137,6 +137,24 @@ export function MapboxFlight() {
         if (Math.abs(eased - applied) > 0.00004) {
           applied = eased;
           aim(eased);
+
+          // Draw the route line up to the current scroll position.
+          const src = map.getSource('route-line') as mapboxgl.GeoJSONSource | undefined;
+          if (src) {
+            const n = LANDMARKS.length;
+            const scaled = eased * (n - 1);
+            const idx = Math.min(Math.floor(scaled), n - 2);
+            const frac = scaled - idx;
+            const coords = LANDMARKS.slice(0, idx + 1).map((l) => l.coordinates) as [number, number][];
+            const a = LANDMARKS[idx].coordinates;
+            const b = LANDMARKS[Math.min(idx + 1, n - 1)].coordinates;
+            coords.push([a[0] + (b[0] - a[0]) * frac, a[1] + (b[1] - a[1]) * frac]);
+            src.setData({
+              type: 'Feature',
+              geometry: { type: 'LineString', coordinates: coords },
+              properties: {},
+            });
+          }
         }
         raf = requestAnimationFrame(tick);
       };
@@ -187,16 +205,40 @@ export function MapboxFlight() {
         setPreloadProgress(0.12);
 
         idleWait(() => {
-          // Pass 3: per-landmark close-up warmup
-          const N = LANDMARKS.length;
-          const warmAt = (i: number) => {
+          // Pass 3: 20 evenly-spaced positions across the entire route (every
+          // 5 % of scroll progress) so all intermediate camera positions are
+          // pre-warmed, not just the 8 landmark locations.
+          const STEPS = 20;
+          const warmAt = (j: number) => {
             if (done) return;
-            setPreloadProgress(0.15 + 0.83 * (i / N));
-            if (i >= N) { start(); return; }
-            aim(i / (N - 1));
-            idleWait(() => warmAt(i + 1), 350);
+            if (j >= STEPS) { start(); return; }
+            aim(j / (STEPS - 1));
+            setPreloadProgress(0.15 + 0.83 * (j / STEPS));
+            idleWait(() => warmAt(j + 1), 280);
           };
           warmAt(0);
+
+          // Animated route line: draws itself as the user scrolls.
+          const routeCoords = LANDMARKS.map((l) => l.coordinates);
+          map.addSource('route-line', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              geometry: { type: 'LineString', coordinates: [routeCoords[0]] },
+              properties: {},
+            },
+          });
+          map.addLayer({
+            id: 'route-line',
+            type: 'line',
+            source: 'route-line',
+            paint: {
+              'line-color': '#ff7a3d',
+              'line-width': 3,
+              'line-opacity': 0.55,
+              'line-blur': 1,
+            },
+          });
         }, 800);
       }, 600);
 

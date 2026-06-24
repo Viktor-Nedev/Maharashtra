@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { useAuthStore } from '@/lib/authStore';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { MobileNav } from '@/components/MobileNav';
+import { CompareBar } from '@/components/CompareBar';
 
 function UserMenu() {
   const { user, signOut } = useAuthStore();
@@ -88,9 +90,12 @@ export function PlatformLayout() {
             ✦ Cinematic
           </Link>
         </nav>
+        <MobileNav />
       </header>
 
       <Outlet />
+
+      <CompareBar />
 
       <footer className="platform__footer">
         <div>

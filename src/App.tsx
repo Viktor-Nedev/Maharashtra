@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { PlatformLayout } from '@/components/PlatformLayout';
 import { RouteTransition } from '@/components/RouteTransition';
+import { CustomCursor } from '@/components/CustomCursor';
+import { Toaster } from '@/components/Toaster';
 import { useAuthStore } from '@/lib/authStore';
 
 const Home = lazy(() => import('@/pages/home/Home'));
@@ -11,6 +13,7 @@ const Booking = lazy(() => import('@/pages/platform/Booking'));
 const Account = lazy(() => import('@/pages/platform/Account'));
 const Planner = lazy(() => import('@/pages/platform/Planner'));
 const AIAdvisor = lazy(() => import('@/pages/platform/AIAdvisor'));
+const Compare = lazy(() => import('@/pages/platform/Compare'));
 const Login = lazy(() => import('@/pages/auth/Login'));
 const Register = lazy(() => import('@/pages/auth/Register'));
 
@@ -32,6 +35,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthInit />
+      <CustomCursor />
+      <Toaster />
       <RouteTransition />
       <Suspense fallback={<RouteFallback />}>
         <Routes>
@@ -45,6 +50,7 @@ export default function App() {
             <Route path="/planner" element={<Planner />} />
             <Route path="/account" element={<Account />} />
             <Route path="/advisor" element={<AIAdvisor />} />
+            <Route path="/compare" element={<Compare />} />
           </Route>
           <Route path="*" element={<Home />} />
         </Routes>

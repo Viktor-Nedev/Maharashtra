@@ -3,6 +3,9 @@ import { motion } from 'framer-motion';
 import { getDestinationBySlug, CATEGORY_LABELS, activityImage } from '@/data/destinations';
 import { usePlatformStore } from '@/lib/store';
 import { ActivityScene } from '@/experience/activities/ActivityScene';
+import { WeatherWidget } from '@/components/WeatherWidget';
+import { PhotoGallery } from '@/components/PhotoGallery';
+import { shareLink } from '@/lib/share';
 
 const SAMPLE_REVIEWS = [
   { name: 'Aarav S.', rating: 5, text: 'Genuinely the best-organised trek I have done. Guides were superb.' },
@@ -51,6 +54,7 @@ export default function DestinationDetail() {
             <span>☀ {dest.bestSeason}</span>
             <span>📍 {dest.coordinates[1].toFixed(2)}°N {dest.coordinates[0].toFixed(2)}°E</span>
           </div>
+          <WeatherWidget coordinates={dest.coordinates} bestSeason={dest.bestSeason} />
           <div className="detail__hero-actions">
             <button
               className={`btn ${isSaved(dest.slug) ? 'btn--primary' : 'btn--ghost'}`}
@@ -61,6 +65,18 @@ export default function DestinationDetail() {
             <Link to={`/book/${dest.slug}/${featuredActivity.id}`} className="btn btn--primary">
               Book now →
             </Link>
+            <button
+              className="btn btn--ghost"
+              onClick={() =>
+                shareLink(
+                  dest.name,
+                  `Check out ${dest.name} on Maharashtra Adventures — ${dest.tagline}`,
+                  `/destination/${dest.slug}`,
+                )
+              }
+            >
+              ↗ Share
+            </button>
           </div>
         </div>
 
@@ -77,6 +93,11 @@ export default function DestinationDetail() {
             <h2>About</h2>
             <p>{dest.description}</p>
           </section>
+
+          <PhotoGallery
+            images={[dest.image, ...dest.activities.slice(0, 5).map((a) => activityImage(a.sceneType))]}
+            title={dest.name}
+          />
 
           <section className="detail__activities">
             <h2>Activities</h2>

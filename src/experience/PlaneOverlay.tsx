@@ -1,5 +1,6 @@
 import { Suspense, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
+import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { Airplane } from './Airplane';
 import { useScrollStore } from '@/lib/scrollStore';
@@ -82,6 +83,23 @@ function Plane({ lowPower }: { lowPower: boolean }) {
   );
 }
 
+function StarField() {
+  const p = useScrollStore((s) => s.progress);
+  const showStars = p < 0.18 || p > 0.82;
+  if (!showStars) return null;
+  return (
+    <Stars
+      radius={100}
+      depth={50}
+      count={600}
+      factor={3}
+      saturation={0}
+      fade
+      speed={0.4}
+    />
+  );
+}
+
 export function PlaneOverlay({ lowPower = false }: { lowPower?: boolean }) {
   return (
     <div className="plane-overlay" aria-hidden="true">
@@ -95,6 +113,7 @@ export function PlaneOverlay({ lowPower = false }: { lowPower?: boolean }) {
           <hemisphereLight args={['#dbeafe', '#3a3326', 0.7]} />
           <directionalLight position={[5, 8, 6]} intensity={1.6} color="#fff3df" />
           <Plane lowPower={lowPower} />
+          <StarField />
         </Suspense>
       </Canvas>
     </div>

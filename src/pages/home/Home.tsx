@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MapboxFlight } from '@/experience/MapboxFlight';
+import { CesiumFlight } from '@/experience/CesiumFlight';
 import { PlaneOverlay } from '@/experience/PlaneOverlay';
 import { LANDMARKS } from '@/experience/mapRoute';
 import { getDestinationBySlug } from '@/data/destinations';
@@ -9,6 +9,8 @@ import { useCinematicScroll } from '@/hooks/useCinematicScroll';
 import { useLowPower } from '@/hooks/useMediaQuery';
 import { useScrollStore } from '@/lib/scrollStore';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Parallax } from '@/components/Parallax';
+import { Magnetic } from '@/components/Magnetic';
 import { CloudIntro } from './CloudIntro';
 import { FlightClouds } from './FlightClouds';
 
@@ -30,7 +32,7 @@ export default function Home() {
   return (
     <div className="cinematic">
       {/* Fixed 3D satellite map + airplane overlay */}
-      <MapboxFlight />
+      <CesiumFlight />
       <PlaneOverlay lowPower={lowPower} />
       {!lowPower && <FlightClouds />}
       <CloudIntro ready={ready} />
@@ -85,9 +87,11 @@ export default function Home() {
                     </h1>
                     <p className="scene__body">{lm.body}</p>
                     <div className="scene__cta">
-                      <a href="#enter" className="btn btn--primary btn--lg">
-                        Begin the Flight
-                      </a>
+                      <Magnetic>
+                        <a href="#enter" className="btn btn--primary btn--lg">
+                          Begin the Flight
+                        </a>
+                      </Magnetic>
                       <Link to="/explore" className="btn btn--ghost">
                         Skip to Booking
                       </Link>
@@ -95,9 +99,9 @@ export default function Home() {
                   </div>
 
                   {lm.images?.[0] && (
-                    <figure className="intro__media">
+                    <Parallax className="intro__media" offset={42}>
                       <img src={lm.images[0]} alt={lm.name} decoding="async" />
-                    </figure>
+                    </Parallax>
                   )}
                 </motion.div>
               </section>
@@ -120,13 +124,16 @@ export default function Home() {
                 <p className="scene__body">{lm.body}</p>
 
                 {lm.images && lm.images.length > 0 && (
-                  <div className={`scene__media scene__media--${lm.images.length > 1 ? 'pair' : 'single'}`}>
+                  <Parallax
+                    className={`scene__media scene__media--${lm.images.length > 1 ? 'pair' : 'single'}`}
+                    offset={32}
+                  >
                     {lm.images.map((src) => (
                       <figure key={src} className="scene__photo">
                         <img src={src} alt={lm.name} loading="lazy" decoding="async" />
                       </figure>
                     ))}
-                  </div>
+                  </Parallax>
                 )}
 
                 {dest && (
@@ -145,9 +152,11 @@ export default function Home() {
 
                 {isLast && (
                   <div className="scene__cta" id="enter">
-                    <Link to="/explore" className="btn btn--primary btn--lg">
-                      Start Your Adventure
-                    </Link>
+                    <Magnetic>
+                      <Link to="/explore" className="btn btn--primary btn--lg">
+                        Start Your Adventure
+                      </Link>
+                    </Magnetic>
                   </div>
                 )}
               </motion.div>

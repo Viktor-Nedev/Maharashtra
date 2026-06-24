@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { toast } from './toastStore';
+
+export const MAX_COMPARE = 3;
 
 export interface Booking {
   id: string;
@@ -16,8 +19,12 @@ export interface Booking {
 interface PlatformState {
   saved: string[]; // destination slugs
   bookings: Booking[];
+  compare: string[]; // destination slugs queued for comparison
   toggleSaved: (slug: string) => void;
   isSaved: (slug: string) => boolean;
+  toggleCompare: (slug: string) => void;
+  isComparing: (slug: string) => boolean;
+  clearCompare: () => void;
   addBooking: (b: Omit<Booking, 'id' | 'createdAt'>) => Booking;
   removeBooking: (id: string) => void;
 }
@@ -32,13 +39,30 @@ export const usePlatformStore = create<PlatformState>()(
     (set, get) => ({
       saved: [],
       bookings: [],
-      toggleSaved: (slug) =>
+      compare: [],
+      toggleSaved: (slug) => {
+        const wasSaved = get().saved.includes(slug);
         set((s) => ({
-          saved: s.saved.includes(slug)
-            ? s.saved.filter((x) => x !== slug)
-            : [...s.saved, slug],
-        })),
+          saved: wasSaved ? s.saved.filter((x) => x !== slug) : [...s.saved, slug],
+        }));
+        toast(wasSaved ? 'Removed from saved trips' : 'Saved to your trips ♥', 'success');
+      },
       isSaved: (slug) => get().saved.includes(slug),
+      toggleCompare: (slug) => {
+        const current = get().compare;
+        if (current.includes(slug)) {
+          set({ compare: current.filter((x) => x !== slug) });
+          return;
+        }
+        if (current.length >= MAX_COMPARE) {
+          toast(`You can compare up to ${MAX_COMPARE} destinations`, 'info');
+          return;
+        }
+        set({ compare: [...current, slug] });
+        toast('Added to comparison', 'success');
+      },
+      isComparing: (slug) => get().compare.includes(slug),
+      clearCompare: () => set({ compare: [] }),
       addBooking: (b) => {
         const booking: Booking = {
           ...b,

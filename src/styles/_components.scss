@@ -1418,3 +1418,711 @@
     padding: 1rem;
   }
 }
+
+/* ===========================================================================
+   Mobile hamburger button
+   =========================================================================== */
+.hamburger {
+  display: none; /* shown only on mobile via @media rule in _platform.scss */
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(127, 127, 127, 0.1);
+  cursor: pointer;
+  z-index: 8500;
+  flex-shrink: 0;
+
+  span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: currentColor;
+    border-radius: 2px;
+    transition: transform 0.28s var(--ease), opacity 0.28s var(--ease);
+    transform-origin: center;
+  }
+
+  &.is-open {
+    span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  }
+}
+
+/* ===========================================================================
+   Mobile navigation drawer
+   =========================================================================== */
+.mobile-nav__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+  background: rgba(5, 7, 13, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.mobile-nav {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 8100;
+  width: min(80vw, 320px);
+  background: var(--bg);
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 2rem;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.2rem;
+    height: var(--nav-h);
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+
+    .hamburger {
+      display: flex; /* always visible in the drawer header */
+    }
+  }
+
+  &__links {
+    list-style: none;
+    padding: 1rem 0;
+    margin: 0;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  &__link {
+    display: block;
+    padding: 0.9rem 1.4rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    transition: color 0.2s var(--ease), background 0.2s var(--ease);
+    border-left: 3px solid transparent;
+
+    &:hover,
+    &.active {
+      color: var(--text);
+      background: var(--surface);
+      border-left-color: var(--accent);
+    }
+  }
+
+  &__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.4rem;
+    border-top: 1px solid var(--line);
+    margin-top: auto;
+  }
+
+  &__cinematic {
+    display: block;
+    text-align: center;
+    padding: 0.6rem 1.4rem;
+    font-size: 0.82rem;
+    color: var(--accent-soft);
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    &:hover { text-decoration: underline; }
+  }
+}
+
+/* ===========================================================================
+   Weather widget — compact live data pill
+   =========================================================================== */
+.weather-widget {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px);
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.88);
+  margin-top: 0.8rem;
+
+  &__icon { font-size: 1.1rem; line-height: 1; }
+  &__temp { font-weight: 700; }
+  &__sep { opacity: 0.4; }
+  &__wind { color: rgba(255, 255, 255, 0.6); }
+  &__label {
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    padding-left: 0.4rem;
+    margin-left: 0.1rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.78rem;
+  }
+  &__season {
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    padding-left: 0.4rem;
+    margin-left: 0.1rem;
+    color: var(--accent-soft);
+    font-size: 0.78rem;
+  }
+
+  &__skeleton {
+    display: block;
+    width: 140px;
+    height: 14px;
+    border-radius: 100px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.14) 50%, rgba(255,255,255,0.06) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease infinite;
+  }
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+/* ===========================================================================
+   Photo gallery — masonry-style grid + fullscreen lightbox
+   =========================================================================== */
+.photo-gallery {
+  margin-bottom: 3rem;
+
+  &__title {
+    font-size: 1.8rem;
+    margin-bottom: 1.2rem;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+
+    /* Make the first photo span 2 rows for a "hero" feel */
+    .photo-gallery__thumb:first-child {
+      grid-row: span 2;
+    }
+  }
+
+  &__thumb {
+    position: relative;
+    display: block;
+    border: none;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    cursor: pointer;
+    aspect-ratio: 1;
+    padding: 0;
+
+    &:first-child {
+      aspect-ratio: auto;
+      height: 100%;
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.4s var(--ease), filter 0.3s;
+    }
+
+    &:hover img {
+      transform: scale(1.06);
+      filter: brightness(1.1);
+    }
+  }
+
+  &__zoom {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 1.4rem;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(5, 7, 13, 0.4);
+    opacity: 0;
+    transition: opacity 0.25s;
+
+    .photo-gallery__thumb:hover & {
+      opacity: 1;
+    }
+  }
+
+  /* ---- Lightbox ---- */
+  &__lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9500;
+    background: rgba(5, 7, 13, 0.92);
+    backdrop-filter: blur(14px);
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+  }
+
+  &__lightbox-inner {
+    max-width: min(90vw, 900px);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  &__lightbox-img {
+    width: 100%;
+    max-height: 75vh;
+    object-fit: contain;
+    border-radius: var(--radius);
+    display: block;
+  }
+
+  &__lightbox-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  &__lightbox-nav {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background 0.2s;
+    &:hover { background: var(--surface-2); }
+  }
+
+  &__lightbox-counter {
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    min-width: 5ch;
+    text-align: center;
+  }
+
+  &__lightbox-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 1rem;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background 0.2s;
+    &:hover { background: var(--surface-2); }
+  }
+
+  /* Mobile: collapse to 2 columns */
+  @media (max-width: 600px) {
+    &__grid {
+      grid-template-columns: repeat(2, 1fr);
+
+      .photo-gallery__thumb:first-child {
+        grid-row: auto;
+        aspect-ratio: 1;
+      }
+    }
+  }
+}
+
+/* ===========================================================================
+   Custom cursor (desktop, fine-pointer only)
+   =========================================================================== */
+.cursor-active,
+.cursor-active * {
+  cursor: none !important;
+}
+
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 10000;
+  border-radius: 50%;
+  /* transform handles position; translate(-50%,-50%) centres on the pointer */
+  margin-left: -4px;
+  margin-top: -4px;
+}
+
+.cursor-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.cursor-ring {
+  width: 38px;
+  height: 38px;
+  margin-left: -19px;
+  margin-top: -19px;
+  border: 1.5px solid var(--accent);
+  opacity: 0.6;
+  transition: width 0.22s var(--ease), height 0.22s var(--ease),
+    margin 0.22s var(--ease), background 0.22s var(--ease), opacity 0.22s var(--ease);
+
+  &.is-hover {
+    width: 60px;
+    height: 60px;
+    margin-left: -30px;
+    margin-top: -30px;
+    background: var(--accent-glow);
+    opacity: 0.9;
+  }
+  &.is-down {
+    width: 26px;
+    height: 26px;
+    margin-left: -13px;
+    margin-top: -13px;
+  }
+}
+
+/* ===========================================================================
+   Toast notifications
+   =========================================================================== */
+.toaster {
+  position: fixed;
+  bottom: 1.4rem;
+  right: 1.4rem;
+  z-index: 9700;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 240px;
+  max-width: min(90vw, 360px);
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 0.92rem;
+  cursor: pointer;
+
+  &__icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  &--success {
+    border-left: 3px solid #6fcf97;
+    .toast__icon { background: #6fcf97; }
+  }
+  &--info {
+    border-left: 3px solid var(--accent);
+    .toast__icon { background: var(--accent); }
+  }
+  &--error {
+    border-left: 3px solid #eb5757;
+    .toast__icon { background: #eb5757; }
+  }
+
+  @media (max-width: 480px) {
+    min-width: 0;
+  }
+}
+
+/* ===========================================================================
+   Image skeleton (shimmer until loaded)
+   =========================================================================== */
+.img-skel {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      var(--surface-2) 30%,
+      rgba(255, 255, 255, 0.08) 50%,
+      var(--surface-2) 70%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.3s ease infinite;
+    transition: opacity 0.4s var(--ease);
+  }
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.5s var(--ease);
+  }
+
+  &.is-loaded {
+    &::after { opacity: 0; }
+    img { opacity: 1; }
+  }
+}
+
+/* ===========================================================================
+   Advisor quick actions (itinerary generator)
+   =========================================================================== */
+.advisor__quick-actions {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin-top: 1.2rem;
+}
+
+/* ===========================================================================
+   Terrain preview (flip-card 3D)
+   =========================================================================== */
+.terrain-preview {
+  width: 100%;
+  height: 100%;
+  canvas { display: block; }
+}
+
+/* ===========================================================================
+   Compare — floating bar + comparison table page
+   =========================================================================== */
+.compare-bar {
+  position: fixed;
+  bottom: 1.4rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 7500;
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 0.7rem 0.9rem 0.7rem 1.1rem;
+  border-radius: 100px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow);
+  max-width: calc(100vw - 2rem);
+
+  &__thumbs {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  &__thumb {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line-strong);
+    background-size: cover;
+    background-position: center;
+    cursor: pointer;
+    overflow: hidden;
+
+    .compare-bar__remove {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(5, 7, 13, 0.6);
+      color: #fff;
+      font-size: 0.8rem;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    &:hover .compare-bar__remove { opacity: 1; }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  @media (max-width: 480px) {
+    gap: 0.7rem;
+    padding: 0.6rem;
+    &__thumb { width: 38px; height: 38px; }
+  }
+}
+
+.compare {
+  width: 100%;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 4rem) clamp(1.5rem, 5vw, 3rem);
+
+  &--empty {
+    text-align: center;
+    padding: 6rem 1.5rem;
+    h1 { margin-bottom: 1rem; }
+    p { color: var(--text-dim); margin-bottom: 1.5rem; }
+  }
+
+  &__head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    h1 { font-size: clamp(1.8rem, 5vw, 2.8rem); margin: 0.3rem 0 0; }
+  }
+
+  &__scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 520px;
+
+    th, td {
+      text-align: left;
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    tbody th {
+      color: var(--text-faint);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      width: 140px;
+      white-space: nowrap;
+    }
+
+    td {
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+  }
+
+  &__corner { background: transparent; border-bottom: none; }
+
+  &__card-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 180px;
+
+    strong { font-size: 1.15rem; }
+    p {
+      color: var(--text-dim);
+      font-size: 0.82rem;
+      margin: 0;
+      font-weight: 400;
+    }
+  }
+
+  &__thumb {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: var(--radius-sm);
+    background-size: cover;
+    background-position: center;
+    margin-bottom: 0.3rem;
+  }
+
+  &__card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 0.3rem;
+  }
+
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  &__tag {
+    padding: 0.2rem 0.6rem;
+    border-radius: 100px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    font-size: 0.74rem;
+    color: var(--text-dim);
+  }
+}
+
+/* ===========================================================================
+   Cesium 3D flight (homepage) — fills the fixed map layer
+   =========================================================================== */
+.cesium-flight {
+  background: #0a1430;
+
+  &__viewer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* HTML landmark markers tracked over the globe. Container ignores pointer
+     events; the individual .map-landmark buttons re-enable them inline. */
+  &__markers {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 2;
+  }
+
+  /* Cesium fills its container; strip the focus outline. */
+  .cesium-viewer,
+  .cesium-widget,
+  .cesium-widget canvas {
+    width: 100%;
+    height: 100%;
+    outline: none;
+  }
+
+  /* Keep the required Esri/Cesium attribution but make it discreet. */
+  .cesium-viewer-bottom {
+    opacity: 0.45;
+    right: 8px;
+    bottom: 4px;
+  }
+  .cesium-widget-credits,
+  .cesium-credit-container {
+    font-size: 10px;
+  }
+}
