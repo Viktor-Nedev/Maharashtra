@@ -13,10 +13,13 @@ interface ScrollState {
   ready: boolean;
   /** User opted into reduced motion / low-power rendering. */
   lowPower: boolean;
+  /** Mapbox preload progress 0 → 1, updated by MapboxFlight during warmup. */
+  preloadProgress: number;
   setProgress: (p: number) => void;
   setScene: (s: number) => void;
   setReady: (r: boolean) => void;
   setLowPower: (v: boolean) => void;
+  setPreloadProgress: (p: number) => void;
 }
 
 export const useScrollStore = create<ScrollState>((set) => ({
@@ -24,8 +27,10 @@ export const useScrollStore = create<ScrollState>((set) => ({
   scene: 0,
   ready: false,
   lowPower: false,
+  preloadProgress: 0,
   setProgress: (progress) => set({ progress }),
   setScene: (scene) => set({ scene }),
   setReady: (ready) => set({ ready }),
   setLowPower: (lowPower) => set({ lowPower }),
+  setPreloadProgress: (preloadProgress) => set({ preloadProgress }),
 }));

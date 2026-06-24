@@ -1,22 +1,44 @@
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { DESTINATIONS, getDestinationBySlug } from '@/data/destinations';
 import { usePlatformStore } from '@/lib/store';
+import { useAuthStore } from '@/lib/authStore';
 
 export default function Account() {
   const { saved, bookings, removeBooking, toggleSaved } = usePlatformStore();
+  const { user } = useAuthStore();
   const savedDestinations = saved
     .map((slug) => getDestinationBySlug(slug))
     .filter(Boolean) as typeof DESTINATIONS;
 
+  const displayName = (user?.user_metadata?.name as string | undefined) ?? user?.email ?? 'Traveller';
+  const initials = displayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
     <div className="account">
-      <header className="account__head">
-        <div className="account__avatar">M</div>
+      <motion.header
+        className="account__head"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="account__avatar">{initials}</div>
         <div>
-          <h1>My Trips</h1>
-          <p>Saved destinations and your booking history.</p>
+          <h1>{displayName}</h1>
+          {user?.email && <p className="account__email">{user.email}</p>}
+          {!user && <p>Saved destinations and your booking history.</p>}
         </div>
-      </header>
+        {!user && (
+          <Link to="/login" className="btn btn--primary btn--sm account__signin">
+            Sign in to sync trips
+          </Link>
+        )}
+      </motion.header>
 
       <section>
         <h2>Saved trips ({savedDestinations.length})</h2>
@@ -46,7 +68,9 @@ export default function Account() {
       <section>
         <h2>Booking history ({bookings.length})</h2>
         {bookings.length === 0 ? (
-          <p className="empty">No bookings yet.</p>
+          <p className="empty">
+            No bookings yet. <Link to="/explore">Find an adventure →</Link>
+          </p>
         ) : (
           <table className="bookings">
             <thead>

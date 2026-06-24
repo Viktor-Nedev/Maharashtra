@@ -26,6 +26,7 @@ export default defineConfig({
           r3f: ['@react-three/fiber', '@react-three/drei', '@react-three/postprocessing'],
           gsap: ['gsap'],
           mapbox: ['mapbox-gl'],
+          stripe: ['@stripe/stripe-js', '@stripe/react-stripe-js'],
           vendor: ['react', 'react-dom', 'react-router-dom'],
         },
       },

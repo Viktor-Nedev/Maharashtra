@@ -18,6 +18,7 @@ export function MapboxFlight() {
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const setReady = useScrollStore((s) => s.setReady);
+  const setPreloadProgress = useScrollStore((s) => s.setPreloadProgress);
 
   useEffect(() => {
     if (!token || !ref.current) {
@@ -168,6 +169,7 @@ export function MapboxFlight() {
         if (done) return;
         done = true;
         window.clearTimeout(overallCap);
+        setPreloadProgress(1);
         setReady(true);
         aim(0);
         applied = -1;
@@ -182,6 +184,7 @@ export function MapboxFlight() {
       const N = LANDMARKS.length;
       const warmAt = (i: number) => {
         if (done) return;
+        setPreloadProgress(Math.min(0.95, i / N));
         if (i >= N) {
           start();
           return;

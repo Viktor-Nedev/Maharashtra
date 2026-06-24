@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useSpring, animate } from 'framer-motion';
 import {
   ACTIVITY_SHOWCASE,
   CATEGORY_LABELS,
@@ -19,6 +19,22 @@ const CATEGORIES = Object.keys(CATEGORY_LABELS) as ActivityCategory[];
 const hideBroken = (e: React.SyntheticEvent<HTMLImageElement>) => {
   e.currentTarget.style.opacity = '0';
 };
+
+function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const mv = useMotionValue(0);
+  const spring = useSpring(mv, { stiffness: 60, damping: 18 });
+
+  useEffect(() => {
+    const ctrl = animate(mv, to, { duration: 1.6, ease: [0.22, 1, 0.36, 1] });
+    const unsub = spring.on('change', (v) => {
+      if (ref.current) ref.current.textContent = Math.round(v) + suffix;
+    });
+    return () => { ctrl.stop(); unsub(); };
+  }, [mv, spring, to, suffix]);
+
+  return <span ref={ref}>0{suffix}</span>;
+}
 
 export default function Explore() {
   const [filter, setFilter] = useState<ActivityCategory | 'all'>('all');
@@ -71,9 +87,9 @@ export default function Explore() {
           </h1>
           <p>Six signature regions. Eighteen kinds of experience across Maharashtra — trek, dive, glide, ride.</p>
           <div className="explore__hero-stats">
-            <div><strong>{DESTINATIONS.length}</strong><span>regions</span></div>
-            <div><strong>{DESTINATIONS.reduce((n, d) => n + d.activities.length, 0)}</strong><span>activities</span></div>
-            <div><strong>4.8★</strong><span>avg rating</span></div>
+            <div><strong><CountUp to={DESTINATIONS.length} /></strong><span>regions</span></div>
+            <div><strong><CountUp to={DESTINATIONS.reduce((n, d) => n + d.activities.length, 0)} /></strong><span>activities</span></div>
+            <div><strong><CountUp to={4.8} suffix="★" /></strong><span>avg rating</span></div>
           </div>
           <div className="explore__hero-cta">
             <a href="#experiences" className="btn btn--primary">Browse experiences</a>

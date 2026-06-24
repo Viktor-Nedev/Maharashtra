@@ -2,8 +2,8 @@ import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getDestinationBySlug, CATEGORY_LABELS, activityImage } from '@/data/destinations';
 import { usePlatformStore } from '@/lib/store';
+import { ActivityScene } from '@/experience/activities/ActivityScene';
 
-// A few seed reviews so detail pages feel populated in demo mode.
 const SAMPLE_REVIEWS = [
   { name: 'Aarav S.', rating: 5, text: 'Genuinely the best-organised trek I have done. Guides were superb.' },
   { name: 'Meera K.', rating: 5, text: 'Sunrise over the clouds was unreal. Worth every rupee.' },
@@ -26,15 +26,22 @@ export default function DestinationDetail() {
     );
   }
 
+  const featuredActivity = dest.activities[0];
+
   return (
     <div className="detail">
+      {/* Split hero: info left, live 3D scene right */}
       <motion.header
-        className="detail__hero"
-        style={{ backgroundImage: `linear-gradient(180deg, rgba(5,7,13,.2), rgba(5,7,13,.85)), url(${dest.image})` }}
+        className="detail__hero detail__hero--split"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
       >
+        <div
+          className="detail__hero-bg"
+          style={{ backgroundImage: `url(${dest.image})` }}
+          aria-hidden="true"
+        />
         <div className="detail__hero-inner">
           <span className="eyebrow">{dest.region}</span>
           <h1>{dest.name}</h1>
@@ -44,12 +51,23 @@ export default function DestinationDetail() {
             <span>☀ {dest.bestSeason}</span>
             <span>📍 {dest.coordinates[1].toFixed(2)}°N {dest.coordinates[0].toFixed(2)}°E</span>
           </div>
-          <button
-            className={`btn ${isSaved(dest.slug) ? 'btn--primary' : 'btn--ghost'}`}
-            onClick={() => toggleSaved(dest.slug)}
-          >
-            {isSaved(dest.slug) ? '♥ Saved' : '♡ Save trip'}
-          </button>
+          <div className="detail__hero-actions">
+            <button
+              className={`btn ${isSaved(dest.slug) ? 'btn--primary' : 'btn--ghost'}`}
+              onClick={() => toggleSaved(dest.slug)}
+            >
+              {isSaved(dest.slug) ? '♥ Saved' : '♡ Save trip'}
+            </button>
+            <Link to={`/book/${dest.slug}/${featuredActivity.id}`} className="btn btn--primary">
+              Book now →
+            </Link>
+          </div>
+        </div>
+
+        {/* Live 3D scene preview */}
+        <div className="detail__hero-scene" aria-hidden="true">
+          <ActivityScene sceneType={featuredActivity.sceneType} />
+          <span className="detail__hero-scene-label">Live 3D preview</span>
         </div>
       </motion.header>
 
