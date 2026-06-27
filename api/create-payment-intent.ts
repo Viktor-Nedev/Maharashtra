@@ -18,7 +18,9 @@ export default async function handler(
   if (!key) return res.status(503).json({ error: 'Stripe not configured' });
 
   try {
-    const stripe = new Stripe(key, { apiVersion: '2025-05-28.basil' });
+    // No explicit apiVersion → the SDK uses its built-in pinned version, so this
+    // stays in sync with whatever stripe-node version is installed.
+    const stripe = new Stripe(key);
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     // The client sends the total in rupees (INR); Stripe expects the smallest
     // currency unit (paise), so multiply by 100.
