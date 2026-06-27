@@ -20,8 +20,11 @@ export default async function handler(
   try {
     const stripe = new Stripe(key, { apiVersion: '2025-05-28.basil' });
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    const amount = Math.round(Number(body?.amount) || 0);
-    if (amount < 50) return res.status(400).json({ error: 'Invalid amount' });
+    // The client sends the total in rupees (INR); Stripe expects the smallest
+    // currency unit (paise), so multiply by 100.
+    const rupees = Number(body?.amount) || 0;
+    const amount = Math.round(rupees * 100);
+    if (amount < 100) return res.status(400).json({ error: 'Invalid amount' }); // ≥ ₹1
 
     const intent = await stripe.paymentIntents.create({
       amount,

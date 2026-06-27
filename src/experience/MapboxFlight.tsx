@@ -68,7 +68,9 @@ export function MapboxFlight({ lowPower = false }: { lowPower?: boolean }) {
           // density, so detail is equivalent while round-trips drop sharply.
           tileSize: 512,
           minzoom: 0,
-          maxzoom: 18,
+          // Cap at 16: the flight altitude never needs sharper than this, and a
+          // lower cap means far fewer tiles to fetch (z17/18 are upsampled).
+          maxzoom: 16,
         });
         map.addLayer({
           id: 'satellite',
@@ -140,6 +142,8 @@ export function MapboxFlight({ lowPower = false }: { lowPower?: boolean }) {
 
       let applied = -1;
       const tick = () => {
+        // Skip all camera/tile work while the tab is hidden (saves battery/CPU).
+        if (document.hidden) { raf = requestAnimationFrame(tick); return; }
         const targetP = useScrollStore.getState().progress;
         eased += (targetP - eased) * 0.14;
         if (Math.abs(targetP - eased) < 0.0003) eased = targetP;

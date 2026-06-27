@@ -48,6 +48,10 @@ export interface Activity {
   coordinates?: [number, number]; // [lng, lat]
   image?: string;
   reviews?: ActivityReview[];
+  /** Hour-by-hour schedule for the experience. Falls back to a generated one. */
+  itinerary?: string[];
+  /** What the price includes. Falls back to a category default. */
+  included?: string[];
 }
 
 export interface Operator {
@@ -1039,6 +1043,77 @@ const SCENE_PHOTO: Record<ActivitySceneType, string> = {
 
 export function activityImage(sceneType: ActivitySceneType, w = 800): string {
   return `https://images.unsplash.com/photo-${SCENE_PHOTO[sceneType]}?auto=format&fit=crop&w=${w}&q=80`;
+}
+
+// --- Listing itinerary + inclusions ----------------------------------------
+// Every adventure listing must show an itinerary. Where an activity doesn't
+// define a bespoke one, we synthesise a believable schedule from its category
+// and duration so the listing is always complete.
+
+const CATEGORY_ITINERARY: Record<ActivityCategory, string[]> = {
+  trekking: [
+    'Meet the operator team at the trailhead — safety briefing & gear check',
+    'Begin the guided ascent through forest and ridgeline sections',
+    'Summit / viewpoint break — photos, snacks and local stories',
+    'Descent with the guide and transfer back to the base point',
+  ],
+  camping: [
+    'Check-in at the campsite — pitch tents and settle in',
+    'Sunset trail and nature walk with the host',
+    'Bonfire, dinner and stargazing under the open sky',
+    'Sunrise, breakfast and pack-up before departure',
+  ],
+  water: [
+    'Arrival, life-jacket fitting and on-water safety briefing',
+    'Guided session on the water with your instructor',
+    'Free time to paddle / swim / shoot photos',
+    'Return to shore, debrief and refreshments',
+  ],
+  aerial: [
+    'Reporting, weather check and equipment briefing',
+    'Ground training and harness / safety setup with the pilot',
+    'The main flight — soak in the aerial views',
+    'Touchdown, photos and certificate handover',
+  ],
+  climbing: [
+    'Meet the certified guide — knots, belay and safety briefing',
+    'Warm-up and technique session on the rock',
+    'The main climb / rappel with full top-rope safety',
+    'Wind-down, debrief and transfer back',
+  ],
+  wildlife: [
+    'Early reporting at the reserve gate with the naturalist',
+    'Guided safari / forest trail to prime sighting spots',
+    'Quiet observation and photography of wildlife & birds',
+    'Return drive and conservation talk',
+  ],
+};
+
+const CATEGORY_INCLUDED: Record<ActivityCategory, string[]> = {
+  trekking: ['Certified local guide', 'Safety gear', 'Trail permits', 'Light snacks & water'],
+  camping: ['Tent & sleeping gear', 'Campfire & dinner', 'Breakfast', 'Host & safety crew'],
+  water: ['All equipment & life jackets', 'Certified instructor', 'Safety kayak/boat support'],
+  aerial: ['Trained pilot/instructor', 'All flight gear', 'Insurance', 'Photos/video'],
+  climbing: ['Certified guide', 'Ropes, harness & helmet', 'Belay & safety setup'],
+  wildlife: ['Expert naturalist', 'Park entry & permits', 'Safari transport'],
+};
+
+/** Itinerary for a listing — its own, or a category-based default. */
+export function activityItinerary(activity: Activity): string[] {
+  if (activity.itinerary && activity.itinerary.length > 0) return activity.itinerary;
+  const base = CATEGORY_ITINERARY[activity.category];
+  // For longer experiences, hint at the extended duration.
+  if (activity.durationHours >= 12) {
+    return [base[0], ...base.slice(1, -1), 'Overnight stay with the operator', base[base.length - 1]];
+  }
+  return base;
+}
+
+/** What's included for a listing — its own, or a category-based default. */
+export function activityIncluded(activity: Activity): string[] {
+  return activity.included && activity.included.length > 0
+    ? activity.included
+    : CATEGORY_INCLUDED[activity.category];
 }
 
 export const ACTIVITY_SHOWCASE = (() => {

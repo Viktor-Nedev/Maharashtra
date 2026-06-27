@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapboxFlight } from '@/experience/MapboxFlight';
 import { PlaneOverlay } from '@/experience/PlaneOverlay';
 import { LANDMARKS } from '@/experience/mapRoute';
 import { getDestinationBySlug } from '@/data/destinations';
@@ -15,13 +14,29 @@ import { Magnetic } from '@/components/Magnetic';
 import { CloudIntro } from './CloudIntro';
 import { FlightClouds } from './FlightClouds';
 
+// Defer the 1.8 MB mapbox-gl chunk so it never blocks first paint / the intro.
+const MapboxFlight = lazy(() =>
+  import('@/experience/MapboxFlight').then((m) => ({ default: m.MapboxFlight })),
+);
+
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
+const STATIC_HERO_IMG = '/header_maharashta.jpg';
+
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
   const lowPower = useLowPower();
   const ready = useScrollStore((s) => s.ready);
+  const setReady = useScrollStore((s) => s.setReady);
   const user = useAuthStore((s) => s.user);
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Skip the WebGL flight entirely on weak/low-power devices, data-saver mode,
+  // or when no Mapbox token is configured — show a fast static scenic hero so
+  // phones stay smooth and the live site never looks broken.
+  const saveData =
+    (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
+  const useStaticHero = lowPower || saveData || !MAPBOX_TOKEN;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -30,14 +45,31 @@ export default function Home() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // The static hero has nothing to preload — lift the cloud intro immediately.
+  useEffect(() => {
+    if (useStaticHero) setReady(true);
+  }, [useStaticHero, setReady]);
+
   useCinematicScroll(containerRef);
 
   return (
     <div className="cinematic">
-      {/* Fixed 3D satellite map + airplane overlay */}
-      <MapboxFlight lowPower={lowPower} />
-      <PlaneOverlay lowPower={lowPower} />
-      {!lowPower && <FlightClouds />}
+      {/* Fixed background: 3D satellite flight, or a static scenic hero */}
+      {useStaticHero ? (
+        <div
+          className="experience-canvas cinematic__static-hero"
+          style={{ backgroundImage: `url(${STATIC_HERO_IMG})` }}
+          aria-hidden="true"
+        />
+      ) : (
+        <>
+          <Suspense fallback={null}>
+            <MapboxFlight lowPower={lowPower} />
+          </Suspense>
+          <PlaneOverlay lowPower={lowPower} />
+          <FlightClouds />
+        </>
+      )}
       <CloudIntro ready={ready} />
 
       {/* Floating top navigation */}

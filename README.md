@@ -1,104 +1,117 @@
-# Maharashtra — Cinematic 3D Travel Platform
+# Maharashtra — Adventure Booking Platform (with a cinematic 3D flight)
 
-A scroll-driven cinematic flight through Maharashtra's greatest adventures, fused
-with a real booking platform. Built for the **3D Websites Hackathon** and
-**Zero to Live: Website Challenge**.
+A full-stack, production-ready platform to **discover, compare and book** outdoor
+adventures across Maharashtra — fronted by a scroll-driven 3D satellite *flight*
+over the state. Built for the **Zero to Live: Website Challenge**.
 
-> Scroll = fly. A 3D airplane carries you from above the clouds, over the
-> Sahyadri ranges, through cloud transitions, across Pawna Lake, into the
-> Bhimashankar forest, over the Harishchandragad cliffs, and down to a glowing
-> landing hub — where the real booking platform begins.
+> Scroll = fly. A 3D airplane carries you south → north over a live Mapbox
+> satellite map — Tarkarli, Mahabaleshwar, Pawna, the Sahyadris, Mumbai,
+> Bhimashankar, Harishchandragad — and lands you in the booking platform.
 
-## ✨ Highlights
+## ✅ What it does (challenge requirements)
 
-- **Scroll-driven Mapbox flight** — the homepage is a real **3D satellite Mapbox
-  map** of Maharashtra that you fly across as you scroll. The camera tracks a
-  landmark route south → north, descending in altitude (flying *down* toward the
-  terrain), while a 3D airplane (transparent R3F layer) banks in front of it.
-- **Cloud-load transition** — clouds part and fade to reveal the flight on load.
-- **A bespoke 3D scene for every activity** — trekking, camping, kayaking,
-  rafting, boating, scuba, zipline, paragliding, hot-air balloon, climbing,
-  rappelling, wildlife and caving each get their own animated, interactive
-  (drag-to-orbit) React Three Fiber scene with bloom.
-- **Light & dark mode** — persisted, OS-aware, toggle in every nav.
-- **Full booking platform** — explore + filter, Mapbox 3D terrain map,
-  destination detail, operators, reviews, booking flow, saved trips, history.
-- **Runs with zero config** — Supabase is optional; the app falls back to seed
-  data + localStorage. (Mapbox needs a token for the satellite map.)
-- **Performance-aware** — adaptive DPR, a low-power render path for mobile /
-  reduced-motion, aggressive code-splitting, lazy routes.
+- **Discover activities** — trekking, camping, water sports, aerial, climbing,
+  wildlife — filterable by category, price and duration on `/explore`.
+- **Explore destinations** — six signature Maharashtra regions with detail pages.
+- **Detailed listings** — every activity opens a listing panel with **pricing,
+  an hour-by-hour itinerary, what's included, the verified operator, reviews and
+  ratings**, plus a date-range calendar.
+- **Seamless booking** — pick a date + party size → `/book/:slug/:activityId` →
+  pay → confirmation, saved to your trip history + profile calendar.
+- **Secure payments** — Stripe PaymentElement (`/api/create-payment-intent`),
+  with a graceful demo-confirm fallback when no Stripe key is set.
+- **Operator-based model** — operators (verified, rated) own on-ground execution;
+  surfaced on every listing and destination page.
+- **AI trip advisor** — streaming **Google Gemini** assistant (`/api/gemini-advise`)
+  that recommends destinations and generates multi-day itineraries into the Planner.
+- **Accounts + persistence** — Supabase Auth + Postgres (saved trips, planned
+  trips, bookings) with Row-Level Security; localStorage fallback for offline demos.
+- **Mobile-first & fast** — responsive across phones, code-split lazy routes,
+  deferred map JS, and a low-power static-hero path that skips WebGL on weak
+  devices.
 
 ## 🧱 Stack
 
-React · TypeScript · Vite · Three.js · React Three Fiber · Drei ·
-`@react-three/postprocessing` · GSAP + ScrollTrigger · Framer Motion ·
-Zustand · Supabase · Mapbox GL · Vercel.
+React · TypeScript · Vite · Mapbox GL (3D flight + activity maps) · Three.js /
+React Three Fiber (airplane overlay) · Framer Motion · GSAP ScrollTrigger ·
+Zustand · **Supabase** (Auth + Postgres + RLS) · **Stripe** · **Google Gemini** ·
+Vercel (static + edge/node `/api` functions).
 
-## 🚀 Getting started
+## 🚀 Getting started (local)
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the printed local URL. That's it — no keys required.
-
-### Optional: enable the backend & map
+Opens with zero config (seed data + localStorage + a static hero). Add keys for
+the full experience:
 
 ```bash
 cp .env.example .env
-# fill in VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MAPBOX_TOKEN
+# fill VITE_MAPBOX_TOKEN, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_STRIPE_PK
 ```
 
-Then create the database:
+Then create the database tables: open the **Supabase dashboard → SQL → New
+query**, paste the contents of [`supabase/schema.sql`](supabase/schema.sql) and
+**Run** (or `supabase db push`). This creates `profiles`, `saved_trips`,
+`planned_trips`, `bookings` with owner-only RLS.
 
-```bash
-# paste supabase/schema.sql into the Supabase SQL editor, or:
-supabase db push
-```
+## 🌐 Deploy to Vercel (live site)
+
+1. Push to GitHub and **Import** the repo in Vercel (framework auto-detected as
+   Vite; `vercel.json` already handles SPA routing + asset caching, and `/api`
+   edge+node functions deploy automatically).
+2. In **Vercel → Project → Settings → Environment Variables**, add:
+
+   | Variable | Scope | Notes |
+   |---|---|---|
+   | `VITE_MAPBOX_TOKEN` | Build | 3D flight map (else static hero) |
+   | `VITE_SUPABASE_URL` | Build | `https://<ref>.supabase.co` |
+   | `VITE_SUPABASE_ANON_KEY` | Build | publishable / anon key (browser-safe) |
+   | `VITE_STRIPE_PK` | Build | Stripe publishable key |
+   | `STRIPE_SECRET_KEY` | Runtime | server-side, for payment intents |
+   | `GEMINI_API_KEY` | Runtime | server-side, for the AI advisor |
+
+   > The Supabase **secret** key (`sb_secret_…`) is **not** needed by this app and
+   > must never be `VITE_`-prefixed or committed.
+3. Run [`supabase/schema.sql`](supabase/schema.sql) in the Supabase SQL editor.
+4. Deploy:
+
+   ```bash
+   npx vercel login
+   npx vercel --prod
+   ```
+
+   (Or just click **Deploy** after the GitHub import.)
 
 ## 📂 Structure
 
 ```
+api/                       # Vercel functions: gemini-advise (edge), create-payment-intent (node)
 src/
-  experience/             # MapboxFlight (home map), PlaneOverlay, Airplane, mapRoute
-  experience/activities/  # Per-activity 3D scenes: kit, scenes, ActivityScene
-  pages/home/             # Cinematic homepage + CloudIntro + progress rail
-  pages/platform/         # Explore, DestinationDetail, Booking, Account
-  components/              # PlatformLayout, WorldMap (Mapbox), ThemeToggle
-  data/                   # Destinations / activities / operators seed model
-  lib/                    # scrollStore, themeStore, platform store, supabase client
-  hooks/                  # useCinematicScroll (GSAP), useMediaQuery / useLowPower
-  styles/                 # SCSS tokens (light+dark) + base + cinematic + platform + components
-supabase/schema.sql       # Tables + RLS policies
-vercel.json               # SPA rewrites + asset caching
+  experience/              # MapboxFlight (home 3D flight), PlaneOverlay, Airplane, mapRoute
+  pages/home/              # Cinematic homepage + CloudIntro + progress rail
+  pages/platform/          # Explore, DestinationDetail, Booking, Planner, Account, AIAdvisor, Compare
+  components/              # ActivityMap (pins), ActivityDetailPanel (listing), TripCalendar, nav, …
+  data/                    # destinations.ts — destinations / activities / operators / itineraries
+  lib/                     # stores (platform/planner/auth/theme/scroll), supabase client, itinerary
+  hooks/ · styles/         # cinematic scroll, media queries · SCSS tokens + cinematic + platform
+supabase/schema.sql        # Tables + RLS policies
+vercel.json                # SPA rewrites + asset caching
 ```
 
-## 🎬 How the home flight works
+## 🎬 How the home flight works (and stays fast)
 
-1. `useCinematicScroll` attaches one scrubbed GSAP ScrollTrigger over the whole
-   page and writes `progress` (0→1) to a Zustand store.
-2. `MapboxFlight` runs a smoothed RAF loop that reads `progress`, samples the
-   landmark route (`mapRoute.ts`) for a ground position + look-ahead point and a
-   descending altitude, and drives the Mapbox camera with `setFreeCameraOptions`
-   over 3D satellite terrain. All map interactions are disabled so page scroll
-   *is* the flight.
-3. `PlaneOverlay` is a transparent R3F canvas above the map: the airplane banks
-   with scroll velocity and holds a nose-down pitch, so it reads as diving down
-   across the live map.
-4. The DOM overlay shows synchronized copy per landmark + a progress rail.
-
-## 🚢 Deploy
-
-Push to GitHub and import into Vercel (framework auto-detected as Vite). Add the
-optional env vars in the Vercel dashboard. `vercel.json` handles SPA routing and
-long-term asset caching.
-
-## 🔁 Swapping in real GLB models
-
-`Airplane.tsx` and `World.tsx` build geometry from primitives so the project runs
-asset-free. To use real models, replace the primitive meshes with
-`useGLTF('/models/airplane.glb')` — the flight/positioning system operates on the
-parent groups and is model-agnostic. Put compressed (Draco/meshopt) GLBs in
-`public/models/`.
+1. `useCinematicScroll` scrubs one GSAP ScrollTrigger over the page and writes
+   `progress` (0→1) to a Zustand store.
+2. `MapboxFlight` (lazy-loaded so the 1.8 MB mapbox-gl chunk never blocks first
+   paint) runs a smoothed RAF loop that samples the landmark route (`mapRoute.ts`)
+   and drives the Mapbox free-camera over 3D satellite terrain. A two-pass tile
+   preload + a terrain-ward ~52° pitch + 512px tiles keep it lag-free and never
+   blank; the loop pauses when the tab is hidden.
+3. On low-power / data-saver / no-token devices the whole WebGL flight + airplane
+   are swapped for a static scenic hero — instant and battery-friendly on phones.
+4. `PlaneOverlay` is a transparent R3F airplane that banks with scroll velocity
+   above the map; DOM copy + a progress rail stay in sync per landmark.
 ```

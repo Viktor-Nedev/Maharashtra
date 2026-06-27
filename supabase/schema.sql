@@ -1,114 +1,87 @@
 -- ===========================================================================
 -- Maharashtra — Supabase schema
--- Run in the Supabase SQL editor (or `supabase db push`).
--- Auth is handled by Supabase Auth (auth.users); these tables reference it.
--- Row Level Security is enabled so users only ever touch their own data.
+-- Run in the Supabase SQL editor (Dashboard → SQL → New query → paste → Run),
+-- or `supabase db push`.
+--
+-- Auth is handled by Supabase Auth (auth.users). The adventure catalogue
+-- (destinations / activities / operators) lives in the app as seed data
+-- (src/data/destinations.ts), so the USER tables below are self-contained:
+-- they store the slug/id + a snapshot of the labels we need to render, with
+-- no foreign key to a catalogue table. This keeps the backend simple and
+-- avoids having to mirror the whole catalogue into the database.
+--
+-- Row Level Security is enabled so every user only ever touches their own data.
 -- ===========================================================================
 
--- ---- Reference data: destinations -----------------------------------------
-create table if not exists public.destinations (
-  id          text primary key,
-  slug        text unique not null,
-  name        text not null,
-  region      text not null,
-  scene       int  not null,
-  tagline     text,
-  description text,
-  lng         double precision not null,
-  lat         double precision not null,
-  hero_color  text,
-  elevation   int,
-  best_season text,
-  image       text,
+-- ---- Profiles (1 row per user, created on sign-up) ------------------------
+create table if not exists public.profiles (
+  id          uuid primary key references auth.users(id) on delete cascade,
+  name        text,
   created_at  timestamptz default now()
 );
 
--- ---- Reference data: operators --------------------------------------------
-create table if not exists public.operators (
-  id        text primary key,
-  name      text not null,
-  rating    numeric(2,1) default 0,
-  verified  boolean default false,
-  since     int
-);
-
--- ---- Reference data: activities -------------------------------------------
-create table if not exists public.activities (
-  id               text primary key,
-  destination_id   text references public.destinations(id) on delete cascade,
-  name             text not null,
-  category         text not null check (category in
-                     ('trekking','camping','water','aerial','climbing','wildlife')),
-  duration_hours   numeric(4,1),
-  difficulty       text check (difficulty in ('easy','moderate','hard','extreme')),
-  price_per_person int not null,
-  description      text
-);
-
--- ---- User data: saved trips -----------------------------------------------
+-- ---- Saved destinations ("hearts") ----------------------------------------
 create table if not exists public.saved_trips (
-  user_id        uuid references auth.users(id) on delete cascade,
-  destination_id text references public.destinations(id) on delete cascade,
-  created_at     timestamptz default now(),
-  primary key (user_id, destination_id)
+  user_id          uuid not null references auth.users(id) on delete cascade,
+  destination_slug text not null,
+  created_at       timestamptz default now(),
+  primary key (user_id, destination_slug)
 );
 
--- ---- User data: bookings --------------------------------------------------
+-- ---- Planned trips (an activity saved with a chosen date range) ------------
+create table if not exists public.planned_trips (
+  id               uuid primary key default gen_random_uuid(),
+  user_id          uuid not null references auth.users(id) on delete cascade,
+  destination_slug text not null,
+  destination_name text not null,
+  activity_id      text not null,
+  activity_name    text not null,
+  image            text,
+  date_from        date not null,
+  date_to          date not null,
+  people           int  not null check (people > 0),
+  total            int  not null,
+  created_at       timestamptz default now()
+);
+
+-- ---- Bookings (confirmed / paid) ------------------------------------------
 create table if not exists public.bookings (
-  id            uuid primary key default gen_random_uuid(),
-  user_id       uuid references auth.users(id) on delete cascade,
-  activity_id   text references public.activities(id),
-  destination_id text references public.destinations(id),
-  booking_date  date not null,
-  people        int  not null check (people > 0),
-  total         int  not null,
-  status        text default 'confirmed' check (status in ('confirmed','cancelled')),
-  created_at    timestamptz default now()
-);
-
--- ---- User data: reviews ---------------------------------------------------
-create table if not exists public.reviews (
-  id             uuid primary key default gen_random_uuid(),
-  user_id        uuid references auth.users(id) on delete cascade,
-  destination_id text references public.destinations(id) on delete cascade,
-  rating         int not null check (rating between 1 and 5),
-  body           text,
-  created_at     timestamptz default now()
+  id               uuid primary key default gen_random_uuid(),
+  user_id          uuid not null references auth.users(id) on delete cascade,
+  destination_slug text not null,
+  destination_name text not null,
+  activity_id      text not null,
+  activity_name    text not null,
+  booking_date     date not null,
+  people           int  not null check (people > 0),
+  total            int  not null,
+  status           text default 'confirmed' check (status in ('confirmed','cancelled')),
+  created_at       timestamptz default now()
 );
 
 -- ===========================================================================
--- Row Level Security
+-- Row Level Security — owner-only on every table
 -- ===========================================================================
+alter table public.profiles      enable row level security;
+alter table public.saved_trips   enable row level security;
+alter table public.planned_trips enable row level security;
+alter table public.bookings      enable row level security;
 
--- Reference tables: world-readable, no writes from clients.
-alter table public.destinations enable row level security;
-alter table public.operators    enable row level security;
-alter table public.activities   enable row level security;
-
-create policy "destinations are public" on public.destinations for select using (true);
-create policy "operators are public"    on public.operators    for select using (true);
-create policy "activities are public"   on public.activities   for select using (true);
-
--- User tables: owner-only.
-alter table public.saved_trips enable row level security;
-alter table public.bookings    enable row level security;
-alter table public.reviews     enable row level security;
+create policy "own profile" on public.profiles
+  for all using (auth.uid() = id) with check (auth.uid() = id);
 
 create policy "own saved trips" on public.saved_trips
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "own planned trips" on public.planned_trips
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create policy "own bookings" on public.bookings
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
--- Reviews: anyone can read, only the author can write/edit.
-create policy "reviews are public"   on public.reviews for select using (true);
-create policy "own reviews insert"   on public.reviews for insert with check (auth.uid() = user_id);
-create policy "own reviews modify"   on public.reviews for update using (auth.uid() = user_id);
-create policy "own reviews delete"   on public.reviews for delete using (auth.uid() = user_id);
-
 -- ===========================================================================
 -- Helpful indexes
 -- ===========================================================================
-create index if not exists idx_activities_destination on public.activities(destination_id);
-create index if not exists idx_bookings_user          on public.bookings(user_id);
-create index if not exists idx_reviews_destination     on public.reviews(destination_id);
+create index if not exists idx_saved_trips_user   on public.saved_trips(user_id);
+create index if not exists idx_planned_trips_user  on public.planned_trips(user_id);
+create index if not exists idx_bookings_user       on public.bookings(user_id);

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { activityImage, CATEGORY_LABELS } from '@/data/destinations';
+import { activityImage, activityItinerary, activityIncluded, CATEGORY_LABELS } from '@/data/destinations';
 import { usePlatformStore } from '@/lib/store';
 import { useAuthStore } from '@/lib/authStore';
 import { toast } from '@/lib/toastStore';
@@ -120,6 +120,9 @@ export function ActivityDetailPanel({ activity, onClose }: Props) {
   const reviews = (activity.reviews && activity.reviews.length > 0) ? activity.reviews : DEFAULT_REVIEWS;
   const avgRating = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
   const slug = activity.destination.slug;
+  const itinerary = activityItinerary(activity);
+  const included = activityIncluded(activity);
+  const operator = activity.destination.operators?.[0];
 
   // Range selection: first pick = start, second = end, third resets.
   const pickDate = (d: string) => {
@@ -206,6 +209,34 @@ export function ActivityDetailPanel({ activity, onClose }: Props) {
                 <section className="adp__desc">
                   <h3>About</h3>
                   <p>{activity.description}</p>
+                  {operator && (
+                    <p className="adp__operator">
+                      Operated by <strong>{operator.name}</strong>
+                      {operator.verified && <span className="adp__verified">✓ Verified partner</span>}
+                      <span className="adp__op-rating">★ {operator.rating}</span>
+                    </p>
+                  )}
+                </section>
+
+                <section className="adp__itinerary">
+                  <h3>Itinerary</h3>
+                  <ol className="adp__timeline">
+                    {itinerary.map((step, i) => (
+                      <li key={i}>
+                        <span className="adp__timeline-num">{i + 1}</span>
+                        <span>{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+
+                <section className="adp__included">
+                  <h3>What's included</h3>
+                  <ul className="adp__included-list">
+                    {included.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
                 </section>
 
                 <section className="adp__reviews">
