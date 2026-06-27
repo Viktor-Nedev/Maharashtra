@@ -55,7 +55,7 @@ export function MapboxFlight({ lowPower = false }: { lowPower?: boolean }) {
     const reveal = () => { if (revealNow) revealNow(); else setReady(true); };
 
     // Safety net only — if warming hangs or the connection is bad, reveal anyway.
-    const overallCap = window.setTimeout(reveal, 16000);
+    const overallCap = window.setTimeout(reveal, 8000);
     map.on('error', (e) => {
       console.error('[MapboxFlight]', e?.error?.message ?? e);
       reveal();
@@ -192,14 +192,13 @@ export function MapboxFlight({ lowPower = false }: { lowPower?: boolean }) {
       // The single reveal path used by the cap + error handlers too.
       revealNow = start;
 
-      // Three-pass preload — ALL warmed behind the cloud-intro curtain so the
-      // plane never takes off over a half-loaded map:
-      //   Pass 1 (zoom 5)  — ancestor tiles for the whole state, ~4 tiles.
-      //   Pass 2 (zoom 8)  — medium-detail parents for the whole corridor.
-      //   Pass 3           — every actual flight camera position (via aim), so
-      //                      the exact tiles the flight shows are cached. Warmed
-      //                      in REVERSE (1 → 0) so position 0 — where the user
-      //                      starts — is cached last and stays hottest.
+      // Fast overview preload — warmed behind the cloud-intro curtain. We cache
+      // COARSE parents for the whole route (cheap) so the ground + 3D terrain are
+      // present everywhere from the first frame; Mapbox then refines satellite +
+      // DEM on-demand as the flight proceeds (coarse → sharp, never blank).
+      //   Pass 1 (zoom 5) — ancestor tiles for the whole state.
+      //   Pass 2 (zoom 8) — coarse satellite + DEM across the whole corridor.
+      //   Pass 3 (aim 0)  — warm just the take-off view so the opening is crisp.
 
       const idleWait = (cb: () => void, cap: number) => {
         let fired = false;
@@ -226,27 +225,20 @@ export function MapboxFlight({ lowPower = false }: { lowPower?: boolean }) {
 
       // Pass 1: very low zoom overview of Maharashtra
       map.jumpTo({ center: [73.8, 18.5], zoom: 5, pitch: 0, bearing: 0 });
-      setPreloadProgress(0.08);
+      setPreloadProgress(0.15);
 
       idleWait(() => {
-        // Pass 2: medium zoom to cache the whole route corridor.
+        // Pass 2: zoom-8 over the route bbox — coarse parents (satellite + DEM)
+        // for the entire corridor so terrain is present everywhere instantly.
         map.jumpTo({ center: [73.8, 18.5], zoom: 8, pitch: 0, bearing: 0 });
-        setPreloadProgress(0.18);
+        setPreloadProgress(0.55);
 
         idleWait(() => {
-          // Pass 3: walk the actual flight camera across every position so the
-          // exact flight-altitude tiles are fetched before takeoff.
-          const STEPS = 26;
-          const warmAt = (j: number) => {
-            if (done) return;
-            if (j > STEPS) { start(); return; }
-            const f = 1 - j / STEPS; // reverse: end at position 0
-            aim(f);
-            setPreloadProgress(0.2 + 0.78 * (j / STEPS));
-            idleWait(() => warmAt(j + 1), 600);
-          };
-          warmAt(0);
-        }, 900);
+          // Pass 3: frame the actual take-off view so the opening is sharp.
+          aim(0);
+          setPreloadProgress(0.8);
+          idleWait(start, 1200);
+        }, 1200);
       }, 700);
     });
 

@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PlaneOverlay } from '@/experience/PlaneOverlay';
 import { LANDMARKS } from '@/experience/mapRoute';
 import { getDestinationBySlug } from '@/data/destinations';
 import { useCinematicScroll } from '@/hooks/useCinematicScroll';
@@ -14,9 +13,14 @@ import { Magnetic } from '@/components/Magnetic';
 import { CloudIntro } from './CloudIntro';
 import { FlightClouds } from './FlightClouds';
 
-// Defer the 1.8 MB mapbox-gl chunk so it never blocks first paint / the intro.
+// Defer the heavy WebGL chunks (mapbox-gl ~1.8 MB, three/r3f ~820 KB) so neither
+// blocks first paint — the cloud intro + page shell render immediately while
+// these download behind the curtain.
 const MapboxFlight = lazy(() =>
   import('@/experience/MapboxFlight').then((m) => ({ default: m.MapboxFlight })),
+);
+const PlaneOverlay = lazy(() =>
+  import('@/experience/PlaneOverlay').then((m) => ({ default: m.PlaneOverlay })),
 );
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
@@ -65,8 +69,8 @@ export default function Home() {
         <>
           <Suspense fallback={null}>
             <MapboxFlight lowPower={lowPower} />
+            <PlaneOverlay lowPower={lowPower} />
           </Suspense>
-          <PlaneOverlay lowPower={lowPower} />
           <FlightClouds />
         </>
       )}
