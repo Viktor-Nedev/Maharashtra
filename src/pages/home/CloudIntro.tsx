@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useScrollStore } from '@/lib/scrollStore';
 
 const CLOUDS = 'https://assets.codepen.io/557388/clouds.png';
 
@@ -10,6 +11,7 @@ const CLOUDS = 'https://assets.codepen.io/557388/clouds.png';
  */
 export function CloudIntro({ ready }: { ready: boolean }) {
   const [minElapsed, setMinElapsed] = useState(false);
+  const preload = useScrollStore((s) => s.preloadProgress);
 
   useEffect(() => {
     const t = setTimeout(() => setMinElapsed(true), 2200);
@@ -17,6 +19,8 @@ export function CloudIntro({ ready }: { ready: boolean }) {
   }, []);
 
   const visible = !(ready && minElapsed);
+  // Real preload progress (0–1) so the bar reflects actual map loading.
+  const pct = ready ? 1 : Math.max(0.04, Math.min(0.99, preload));
 
   return (
     <AnimatePresence>
@@ -48,13 +52,15 @@ export function CloudIntro({ ready }: { ready: boolean }) {
           {/* Brand + status */}
           <motion.div className="cloud-intro__center" exit={{ opacity: 0, scale: 1.06 }} transition={{ duration: 0.7 }}>
             <span className="cloud-intro__brand">MAHARASHTRA</span>
-            <span className="cloud-intro__tag">{ready ? 'Clear skies ahead' : 'Climbing through the clouds…'}</span>
+            <span className="cloud-intro__tag">
+              {ready ? 'Clear skies ahead' : `Loading the map… ${Math.round(pct * 100)}%`}
+            </span>
             <div className="cloud-intro__bar">
               <motion.div
                 className="cloud-intro__bar-fill"
                 initial={{ scaleX: 0 }}
-                animate={{ scaleX: ready ? 1 : 0.85 }}
-                transition={{ duration: ready ? 0.4 : 2.0, ease: 'easeInOut' }}
+                animate={{ scaleX: pct }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
               />
             </div>
           </motion.div>

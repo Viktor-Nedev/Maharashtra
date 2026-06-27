@@ -47,15 +47,21 @@ export function MapboxFlight({ lowPower = false }: { lowPower?: boolean }) {
 
     let raf = 0;
     let eased = 0;
+    // `start()` is assigned inside style.load; the error/cap handlers call it so
+    // there is a single reveal path (curtain up + scroll loop running).
+    let revealNow: (() => void) | null = null;
+    // If warming finished we start the flight; otherwise (style never loaded)
+    // at least lift the curtain so the page is usable.
+    const reveal = () => { if (revealNow) revealNow(); else setReady(true); };
 
-    const readyFallback = window.setTimeout(() => setReady(true), 7000);
+    // Safety net only — if warming hangs or the connection is bad, reveal anyway.
+    const overallCap = window.setTimeout(reveal, 16000);
     map.on('error', (e) => {
       console.error('[MapboxFlight]', e?.error?.message ?? e);
-      setReady(true);
+      reveal();
     });
 
     map.on('style.load', () => {
-      window.clearTimeout(readyFallback);
       map.resize();
 
       if (!map.getSource('satellite')) {
@@ -183,19 +189,17 @@ export function MapboxFlight({ lowPower = false }: { lowPower?: boolean }) {
         applied = -1;
         raf = requestAnimationFrame(tick);
       };
+      // The single reveal path used by the cap + error handlers too.
+      revealNow = start;
 
-      // Two-pass overview preload, all warmed BEHIND the cloud-intro curtain:
-      //
-      // Pass 1 — zoom 5 (whole Maharashtra in ~4 tiles): ancestor tiles so the
-      //   map is never blank at any flight position, just blurry-but-present.
-      // Pass 2 — zoom 8 (~64 tiles): medium detail across the entire route
-      //   corridor — a sharp-enough parent for the whole flight. We then frame
-      //   position 0 and immediately go live (`start`).
-      //
-      // We deliberately DON'T pre-warm every flight position (the old 20-step
-      // pass): it pushed the reveal out to ~5 s and made the camera visibly
-      // teleport. With the terrain-ward 52° pitch + 512px tiles + the zoom-8
-      // parents, on-demand streaming during scroll is fast and never goes blank.
+      // Three-pass preload — ALL warmed behind the cloud-intro curtain so the
+      // plane never takes off over a half-loaded map:
+      //   Pass 1 (zoom 5)  — ancestor tiles for the whole state, ~4 tiles.
+      //   Pass 2 (zoom 8)  — medium-detail parents for the whole corridor.
+      //   Pass 3           — every actual flight camera position (via aim), so
+      //                      the exact tiles the flight shows are cached. Warmed
+      //                      in REVERSE (1 → 0) so position 0 — where the user
+      //                      starts — is cached last and stays hottest.
 
       const idleWait = (cb: () => void, cap: number) => {
         let fired = false;
@@ -222,21 +226,32 @@ export function MapboxFlight({ lowPower = false }: { lowPower?: boolean }) {
 
       // Pass 1: very low zoom overview of Maharashtra
       map.jumpTo({ center: [73.8, 18.5], zoom: 5, pitch: 0, bearing: 0 });
-      setPreloadProgress(0.15);
+      setPreloadProgress(0.08);
 
       idleWait(() => {
-        // Pass 2: medium zoom to cache the whole route corridor, then go live.
+        // Pass 2: medium zoom to cache the whole route corridor.
         map.jumpTo({ center: [73.8, 18.5], zoom: 8, pitch: 0, bearing: 0 });
-        setPreloadProgress(0.55);
-        idleWait(start, 900);
-      }, 600);
+        setPreloadProgress(0.18);
 
-      // Hard fallback so the curtain always lifts even on a slow connection.
-      const overallCap = window.setTimeout(start, 3500);
+        idleWait(() => {
+          // Pass 3: walk the actual flight camera across every position so the
+          // exact flight-altitude tiles are fetched before takeoff.
+          const STEPS = 26;
+          const warmAt = (j: number) => {
+            if (done) return;
+            if (j > STEPS) { start(); return; }
+            const f = 1 - j / STEPS; // reverse: end at position 0
+            aim(f);
+            setPreloadProgress(0.2 + 0.78 * (j / STEPS));
+            idleWait(() => warmAt(j + 1), 600);
+          };
+          warmAt(0);
+        }, 900);
+      }, 700);
     });
 
     return () => {
-      window.clearTimeout(0); // no-op, individual timeouts clear themselves
+      window.clearTimeout(overallCap);
       cancelAnimationFrame(raf);
       map.remove();
     };
