@@ -4,9 +4,13 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAuthStore } from '@/lib/authStore';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
-const NAV_LINKS = [
+const PUBLIC_LINKS = [
   { to: '/explore', label: 'Explore' },
   { to: '/advisor', label: '✦ AI Advisor' },
+];
+
+// Only shown once the user is signed in.
+const AUTH_LINKS = [
   { to: '/planner', label: 'Planner' },
   { to: '/account', label: 'My Trips' },
 ];
@@ -15,6 +19,8 @@ export function MobileNav() {
   const [open, setOpen] = useState(false);
   const { user, signOut } = useAuthStore();
   const { pathname } = useLocation();
+
+  const navLinks = user ? [...PUBLIC_LINKS, ...AUTH_LINKS] : PUBLIC_LINKS;
 
   // Close drawer on route change
   if (!open && pathname) { /* no-op, just subscribe to pathname for re-render */ }
@@ -68,7 +74,7 @@ export function MobileNav() {
               </div>
 
               <ul className="mobile-nav__links">
-                {NAV_LINKS.map(({ to, label }) => (
+                {navLinks.map(({ to, label }) => (
                   <li key={to}>
                     <NavLink to={to} className="mobile-nav__link" onClick={close}>
                       {label}

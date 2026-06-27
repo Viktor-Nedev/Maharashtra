@@ -154,7 +154,13 @@ export default function Explore() {
         <div className="chips">
           <button className={`chip ${filter === 'all' ? 'is-active' : ''}`} onClick={() => setFilter('all')}>All</button>
           {CATEGORIES.map((c) => (
-            <button key={c} className={`chip ${filter === c ? 'is-active' : ''}`} onClick={() => setFilter(c)}>
+            <button
+              key={c}
+              className={`chip chip--cat ${filter === c ? 'is-active' : ''}`}
+              style={{ '--chip': CATEGORY_COLORS[c] } as React.CSSProperties}
+              onClick={() => setFilter(c)}
+            >
+              <span className="chip__dot" />
               {CATEGORY_LABELS[c]}
             </button>
           ))}

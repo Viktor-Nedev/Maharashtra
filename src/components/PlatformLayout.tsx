@@ -71,6 +71,7 @@ function UserMenu() {
 
 /** Shared chrome (nav + footer) for the booking platform routes. */
 export function PlatformLayout() {
+  const user = useAuthStore((s) => s.user);
   return (
     <div className="platform">
       <header className="platform__nav">
@@ -82,8 +83,8 @@ export function PlatformLayout() {
           <NavLink to="/advisor" className="nav__ai">
             ✦ AI Advisor
           </NavLink>
-          <NavLink to="/planner">Planner</NavLink>
-          <NavLink to="/account">Trips</NavLink>
+          {user && <NavLink to="/planner">Planner</NavLink>}
+          {user && <NavLink to="/account">Trips</NavLink>}
           <ThemeToggle />
           <UserMenu />
           <Link to="/" className="nav__cta">

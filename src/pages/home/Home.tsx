@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { CesiumFlight } from '@/experience/CesiumFlight';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MapboxFlight } from '@/experience/MapboxFlight';
 import { PlaneOverlay } from '@/experience/PlaneOverlay';
 import { LANDMARKS } from '@/experience/mapRoute';
 import { getDestinationBySlug } from '@/data/destinations';
 import { useCinematicScroll } from '@/hooks/useCinematicScroll';
 import { useLowPower } from '@/hooks/useMediaQuery';
 import { useScrollStore } from '@/lib/scrollStore';
+import { useAuthStore } from '@/lib/authStore';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Parallax } from '@/components/Parallax';
 import { Magnetic } from '@/components/Magnetic';
@@ -18,7 +19,9 @@ export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
   const lowPower = useLowPower();
   const ready = useScrollStore((s) => s.ready);
+  const user = useAuthStore((s) => s.user);
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -32,7 +35,7 @@ export default function Home() {
   return (
     <div className="cinematic">
       {/* Fixed 3D satellite map + airplane overlay */}
-      <CesiumFlight />
+      <MapboxFlight lowPower={lowPower} />
       <PlaneOverlay lowPower={lowPower} />
       {!lowPower && <FlightClouds />}
       <CloudIntro ready={ready} />
@@ -44,13 +47,44 @@ export default function Home() {
         </span>
         <nav>
           <Link to="/explore">Explore</Link>
-          <Link to="/explore">Activities</Link>
-          <a href="#enter">Book</a>
+          {user && <Link to="/planner">Planner</Link>}
+          {user && <Link to="/account">Trips</Link>}
           <ThemeToggle />
           <Link to="/account" className="nav__cta">
-            Sign in
+            {user ? 'Account' : 'Sign in'}
           </Link>
+          {/* Phone-only hamburger (desktop links are hidden ≤620px) */}
+          <button
+            className={`cinematic__burger ${menuOpen ? 'is-open' : ''}`}
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
         </nav>
+
+        {/* Phone-only slide-down menu */}
+        <AnimatePresence>
+          {menuOpen && (
+            <motion.div
+              className="cinematic__menu"
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Link to="/explore" onClick={() => setMenuOpen(false)}>Explore</Link>
+              {user && <Link to="/planner" onClick={() => setMenuOpen(false)}>Planner</Link>}
+              {user && <Link to="/account" onClick={() => setMenuOpen(false)}>Trips</Link>}
+              <Link to="/account" onClick={() => setMenuOpen(false)}>
+                {user ? 'Account' : 'Sign in'}
+              </Link>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* Hero header banner (image background + title) */}
@@ -174,7 +208,7 @@ export default function Home() {
           <div className="cinematic__footer-links">
             <Link to="/explore">Explore</Link>
             <Link to="/account">My Trips</Link>
-            <a href="#enter">Book</a>
+            <Link to="/planner">Planner</Link>
           </div>
           <p className="cinematic__credit">
             Made by Viktor Nedev ·{' '}

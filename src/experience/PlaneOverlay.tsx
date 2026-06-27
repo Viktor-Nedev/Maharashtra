@@ -42,7 +42,7 @@ function Plane({ lowPower }: { lowPower: boolean }) {
     // Wide, eased ranges keep the appear/disappear soft and smooth.
     const enter = THREE.MathUtils.smoothstep(p, 0.0, 0.16);
     const turn = THREE.MathUtils.smoothstep(p, 0.06, 0.26);
-    const descend = THREE.MathUtils.smoothstep(p, 0.14, 0.9);
+    const descend = THREE.MathUtils.smoothstep(p, 0.06, 0.88);
     const exit = THREE.MathUtils.smoothstep(p, 0.84, 1.0);
 
     // Position --------------------------------------------------------------
@@ -51,10 +51,13 @@ function Plane({ lowPower }: { lowPower: boolean }) {
       weave +
       (1 - enter) * -18 + // start off the left edge, slide in
       exit * exit * 18; // slide off to the right on exit
+    // Sit in the lower-centre third over each landmark (it used to ride too
+    // high and overlap the scene headings). Lower base range + a smaller entry
+    // lift keep the plane below the copy while still descending across scroll.
     const y =
-      THREE.MathUtils.lerp(1.3, -1.5, descend) +
+      THREE.MathUtils.lerp(0.3, -1.9, descend) +
       Math.sin(t * 1.2) * 0.12 +
-      (1 - enter) * 0.9 + // drift down slightly as it enters
+      (1 - enter) * 0.45 + // small lift while sliding in
       exit * 3.0; // climb away on exit
     const z = exit * -7; // recede into the distance on exit
     group.current.position.set(x, y, z);

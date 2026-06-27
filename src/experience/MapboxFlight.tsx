@@ -7,7 +7,7 @@ import { LANDMARKS, altitudeAt, routePointAt } from './mapRoute';
 
 const token = import.meta.env.VITE_MAPBOX_TOKEN;
 
-export function MapboxFlight() {
+export function MapboxFlight({ lowPower = false }: { lowPower?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const setReady = useScrollStore((s) => s.setReady);
@@ -30,12 +30,13 @@ export function MapboxFlight() {
       style: 'mapbox://styles/vikdev/cmlo8l453002c01qu7avs7rf3',
       center: routePointAt(0),
       zoom: 11,
-      pitch: 70,
+      pitch: 60,
       bearing: 0,
       projection: { name: 'mercator' },
       interactive: false,
       attributionControl: false,
-      antialias: true,
+      // Antialias is a real GPU cost on weak devices — only on capable ones.
+      antialias: !lowPower,
       // Large cache so tiles warmed at startup stay resident for the whole flight.
       maxTileCacheSize: 3000,
       // Skip the cross-fade animation between tile zoom levels — tiles appear
@@ -77,15 +78,20 @@ export function MapboxFlight() {
         });
       }
 
-      if (!map.getSource('dem')) {
-        map.addSource('dem', {
-          type: 'raster-dem',
-          url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-          tileSize: 512,
-          maxzoom: 14,
-        });
+      // 3D terrain doubles the tile requests (satellite + DEM) and adds GPU
+      // cost. On low-power devices we fly over flat satellite instead — still
+      // looks great at 60° pitch but loads roughly twice as fast.
+      if (!lowPower) {
+        if (!map.getSource('dem')) {
+          map.addSource('dem', {
+            type: 'raster-dem',
+            url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+            tileSize: 512,
+            maxzoom: 14,
+          });
+        }
+        map.setTerrain({ source: 'dem', exaggeration: 1.2 });
       }
-      map.setTerrain({ source: 'dem', exaggeration: 1.6 });
 
       map.setFog({
         range: [3, 18],
@@ -118,7 +124,10 @@ export function MapboxFlight() {
         const len = Math.hypot(dx, dy) || 1;
         dx /= len;
         dy /= len;
-        const D = alt * 1.5;
+        // Keep the camera angled down at the terrain (~52° pitch) rather than
+        // toward the horizon — a horizon-ward view pulls in hundreds of distant
+        // tiles and stalls. Smaller multiplier = more top-down = fewer tiles.
+        const D = alt * 1.3;
         const camLngLat: [number, number] = [
           target[0] - (dx * D) / (111320 * cosLat),
           target[1] - (dy * D) / 110540,
@@ -171,22 +180,18 @@ export function MapboxFlight() {
         raf = requestAnimationFrame(tick);
       };
 
-      // Three-pass preload strategy:
+      // Two-pass overview preload, all warmed BEHIND the cloud-intro curtain:
       //
-      // Pass 1 — zoom 5 overview (whole Maharashtra in ~4 tiles). These become
-      // the ancestor tiles for every flight position, so even if detail hasn't
-      // arrived yet the map is never blank — just blurry-but-present.
+      // Pass 1 — zoom 5 (whole Maharashtra in ~4 tiles): ancestor tiles so the
+      //   map is never blank at any flight position, just blurry-but-present.
+      // Pass 2 — zoom 8 (~64 tiles): medium detail across the entire route
+      //   corridor — a sharp-enough parent for the whole flight. We then frame
+      //   position 0 and immediately go live (`start`).
       //
-      // Pass 2 — zoom 8 overview (~64 tiles, medium detail for the whole route).
-      // This is the "second parent" level; tiles that arrive here sharpen the
-      // whole route before we've even loaded the close-up views.
-      //
-      // Pass 3 — per-landmark warmup at flight altitude. Step cap is 350 ms
-      // (down from 550) because the parent tiles loaded in passes 1 + 2 mean
-      // Mapbox only needs to fetch the final zoom-level delta, which is fast.
-      //
-      // Overall cap: 5 s (down from 6.5 s). The two-pass overview means we can
-      // afford to be stricter — the map already looks good by 2 s.
+      // We deliberately DON'T pre-warm every flight position (the old 20-step
+      // pass): it pushed the reveal out to ~5 s and made the camera visibly
+      // teleport. With the terrain-ward 52° pitch + 512px tiles + the zoom-8
+      // parents, on-demand streaming during scroll is fast and never goes blank.
 
       const idleWait = (cb: () => void, cap: number) => {
         let fired = false;
@@ -195,54 +200,35 @@ export function MapboxFlight() {
         map.once('idle', fire);
       };
 
+      // Animated route line: drawn progressively by the tick as the user scrolls.
+      map.addSource('route-line', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: [LANDMARKS[0].coordinates] },
+          properties: {},
+        },
+      });
+      map.addLayer({
+        id: 'route-line',
+        type: 'line',
+        source: 'route-line',
+        paint: { 'line-color': '#ff7a3d', 'line-width': 3, 'line-opacity': 0.55, 'line-blur': 1 },
+      });
+
       // Pass 1: very low zoom overview of Maharashtra
       map.jumpTo({ center: [73.8, 18.5], zoom: 5, pitch: 0, bearing: 0 });
-      setPreloadProgress(0.05);
+      setPreloadProgress(0.15);
 
       idleWait(() => {
-        // Pass 2: medium zoom to cache the whole route corridor
+        // Pass 2: medium zoom to cache the whole route corridor, then go live.
         map.jumpTo({ center: [73.8, 18.5], zoom: 8, pitch: 0, bearing: 0 });
-        setPreloadProgress(0.12);
-
-        idleWait(() => {
-          // Pass 3: 20 evenly-spaced positions across the entire route (every
-          // 5 % of scroll progress) so all intermediate camera positions are
-          // pre-warmed, not just the 8 landmark locations.
-          const STEPS = 20;
-          const warmAt = (j: number) => {
-            if (done) return;
-            if (j >= STEPS) { start(); return; }
-            aim(j / (STEPS - 1));
-            setPreloadProgress(0.15 + 0.83 * (j / STEPS));
-            idleWait(() => warmAt(j + 1), 280);
-          };
-          warmAt(0);
-
-          // Animated route line: draws itself as the user scrolls.
-          const routeCoords = LANDMARKS.map((l) => l.coordinates);
-          map.addSource('route-line', {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              geometry: { type: 'LineString', coordinates: [routeCoords[0]] },
-              properties: {},
-            },
-          });
-          map.addLayer({
-            id: 'route-line',
-            type: 'line',
-            source: 'route-line',
-            paint: {
-              'line-color': '#ff7a3d',
-              'line-width': 3,
-              'line-opacity': 0.55,
-              'line-blur': 1,
-            },
-          });
-        }, 800);
+        setPreloadProgress(0.55);
+        idleWait(start, 900);
       }, 600);
 
-      const overallCap = window.setTimeout(start, 5000);
+      // Hard fallback so the curtain always lifts even on a slow connection.
+      const overallCap = window.setTimeout(start, 3500);
     });
 
     return () => {

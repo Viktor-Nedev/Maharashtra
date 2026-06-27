@@ -3,13 +3,16 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { Activity, Destination } from '@/data/destinations';
 
+// Cohesive sunset-and-coast palette: the signature orange leads, with warm and
+// cool accents that all read clearly on the dark surface and take dark text when
+// used as a solid fill (chips, badges, pins).
 export const CATEGORY_COLORS: Record<string, string> = {
-  trekking: '#ff7a3d',
-  camping: '#f5a623',
-  water: '#5e7bff',
-  aerial: '#a78bfa',
-  climbing: '#ef4444',
-  wildlife: '#22c55e',
+  trekking: '#ff7a3d', // signature orange
+  camping: '#f6a821',  // amber
+  water: '#2bb3d6',    // lagoon teal
+  aerial: '#9b7bf0',   // twilight violet
+  climbing: '#f0506e', // coral red
+  wildlife: '#3fb96b', // forest green
 };
 
 export interface ActivityWithDest extends Activity {
