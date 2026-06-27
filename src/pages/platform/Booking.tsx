@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { loadStripe } from '@stripe/stripe-js';
@@ -73,6 +73,7 @@ export default function Booking() {
   const [step, setStep] = useState<'form' | 'pay' | 'done'>('form');
   const [clientSecret, setClientSecret] = useState('');
   const [fetchingSecret, setFetchingSecret] = useState(false);
+  const isCheckout = searchParams.get('checkout') === '1';
 
   const total = useMemo(
     () => (activity ? activity.pricePerPerson * people : 0),
@@ -110,6 +111,18 @@ export default function Booking() {
       setFetchingSecret(false);
     }
   };
+
+  // Arriving from "Book now" (with ?checkout=1) skips the form and goes straight
+  // to Stripe payment. Guarded with a ref so it only fires once.
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (autoStartedRef.current) return;
+    if (searchParams.get('checkout') === '1' && dest && activity && step === 'form') {
+      autoStartedRef.current = true;
+      void handleProceedToPayment();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const confirmBooking = () => {
     if (!dest || !activity) return;
@@ -174,7 +187,14 @@ export default function Booking() {
           </div>
         </div>
 
-        {step === 'form' && (
+        {step === 'form' && isCheckout && (
+          <div className="booking__form booking__loading">
+            <div className="route-fallback__spinner" />
+            <p>Taking you to secure payment…</p>
+          </div>
+        )}
+
+        {step === 'form' && !isCheckout && (
           <form className="booking__form" onSubmit={(e) => { e.preventDefault(); handleProceedToPayment(); }}>
             <h2>Reserve your spot</h2>
 

@@ -159,9 +159,17 @@ export function ActivityDetailPanel({ activity, onClose }: Props) {
   };
 
   const handleBook = () => {
+    if (!user) {
+      toast('Sign in to book ♥', 'info');
+      navigate('/login');
+      return;
+    }
+    // Go straight to checkout — Booking auto-advances to Stripe payment when it
+    // receives the date + people params, so there's no second "Book now" step.
     const params = new URLSearchParams();
     if (from) params.set('date', from);
     params.set('people', String(people));
+    params.set('checkout', '1');
     navigate(`/book/${slug}/${activity.id}?${params}`);
   };
 

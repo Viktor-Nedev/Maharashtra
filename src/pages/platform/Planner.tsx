@@ -94,9 +94,8 @@ export default function Planner() {
             />
           ) : (
             <button className="plannerv2__trip-name" onClick={() => setEditingName(true)}>
-              <span className="plannerv2__trip-icon">✦</span>
               {tripName}
-              <span className="plannerv2__trip-edit">✎</span>
+              <span className="plannerv2__trip-edit">Edit</span>
             </button>
           )}
         </div>
@@ -128,7 +127,7 @@ export default function Planner() {
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="pcard__header">
-            <span className="pcard__icon">💰</span>
+            <span className="pcard__accent" aria-hidden="true" />
             <h2>Budget</h2>
           </div>
 
@@ -208,7 +207,7 @@ export default function Planner() {
           transition={{ duration: 0.55, delay: 0.07, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="pcard__header">
-            <span className="pcard__icon">📍</span>
+            <span className="pcard__accent" aria-hidden="true" />
             <h2>Itinerary</h2>
           </div>
 
@@ -280,7 +279,7 @@ export default function Planner() {
           transition={{ duration: 0.55, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="pcard__header">
-            <span className="pcard__icon">✍️</span>
+            <span className="pcard__accent" aria-hidden="true" />
             <h2>Notes</h2>
           </div>
 

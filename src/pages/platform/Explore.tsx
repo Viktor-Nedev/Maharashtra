@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useSpring, animate } from 'framer-motion';
 import {
   CATEGORY_LABELS,
@@ -14,6 +14,8 @@ import { Tilt } from '@/components/Tilt';
 import { ExploreHero3D } from '@/components/ExploreHero3D';
 import { ImageWithSkeleton } from '@/components/ImageWithSkeleton';
 import { usePlatformStore } from '@/lib/store';
+import { useAuthStore } from '@/lib/authStore';
+import { toast } from '@/lib/toastStore';
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as ActivityCategory[];
 
@@ -62,6 +64,18 @@ export default function Explore() {
   const [flippedId, setFlippedId] = useState<string | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<ActivityWithDest | null>(null);
   const { toggleSaved, isSaved, toggleCompare, isComparing } = usePlatformStore();
+  const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
+
+  // Saving requires an account — prompt sign-in otherwise.
+  const guardedSave = (slug: string) => {
+    if (!user) {
+      toast('Sign in to save trips ♥', 'info');
+      navigate('/login');
+      return;
+    }
+    toggleSaved(slug);
+  };
 
   // All bookable activities that have a map pin, flattened with their region.
   const allActivitiesWithDest = useMemo<ActivityWithDest[]>(
@@ -356,7 +370,7 @@ export default function Explore() {
                       <button
                         className={`dest-card__save ${isSaved(d.slug) ? 'is-saved' : ''}`}
                         aria-label="Save trip"
-                        onClick={(e) => { e.stopPropagation(); toggleSaved(d.slug); }}
+                        onClick={(e) => { e.stopPropagation(); guardedSave(d.slug); }}
                       >
                         {isSaved(d.slug) ? '♥' : '♡'}
                       </button>

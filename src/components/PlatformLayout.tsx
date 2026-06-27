@@ -87,9 +87,6 @@ export function PlatformLayout() {
           {user && <NavLink to="/account">Trips</NavLink>}
           <ThemeToggle />
           <UserMenu />
-          <Link to="/" className="nav__cta">
-            ✦ Cinematic
-          </Link>
         </nav>
         <MobileNav />
       </header>

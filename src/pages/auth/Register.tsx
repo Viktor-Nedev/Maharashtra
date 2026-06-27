@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '@/lib/authStore';
 
@@ -11,7 +11,6 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const { signUp } = useAuthStore();
-  const navigate = useNavigate();
 
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +25,9 @@ export default function Register() {
       setError(err);
       setLoading(false);
     } else {
+      // Account created but NOT logged in — the user must confirm their email
+      // first. No auto-redirect; we show the "check your inbox" state instead.
       setDone(true);
-      setTimeout(() => navigate('/explore'), 2200);
     }
   };
 
@@ -56,9 +56,15 @@ export default function Register() {
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
             >
-              <div className="auth-split__done-icon">✓</div>
-              <h2>You're in!</h2>
-              <p>Check your email to confirm your account. Redirecting…</p>
+              <div className="auth-split__done-icon">✉</div>
+              <h2>Confirm your email</h2>
+              <p>
+                We've sent a confirmation link to <strong>{email}</strong>. Open it to
+                activate your account, then sign in.
+              </p>
+              <Link to="/login" className="btn btn--primary btn--block" style={{ marginTop: '1.2rem' }}>
+                Go to sign in →
+              </Link>
             </motion.div>
           ) : (
             <form className="auth-form" onSubmit={handle}>

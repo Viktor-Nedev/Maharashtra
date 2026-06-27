@@ -98,10 +98,6 @@ export function MobileNav() {
                   </Link>
                 )}
               </div>
-
-              <Link to="/" className="mobile-nav__cinematic" onClick={close}>
-                ✦ Cinematic mode
-              </Link>
             </motion.nav>
           </>
         )}

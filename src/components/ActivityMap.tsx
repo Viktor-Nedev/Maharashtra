@@ -19,6 +19,8 @@ export interface ActivityWithDest extends Activity {
   destination: Destination;
 }
 
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
+
 interface Props {
   activities: ActivityWithDest[];
   onSelect: (activity: ActivityWithDest) => void;
@@ -29,9 +31,11 @@ export function ActivityMap({ activities, onSelect, className = '' }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!mapRef.current) return;
+    // Without a token, mapbox-gl throws on construction — bail out and let the
+    // pin list / fallback render instead.
+    if (!mapRef.current || !MAPBOX_TOKEN) return;
 
-    mapboxgl.accessToken = (import.meta.env.VITE_MAPBOX_TOKEN as string) || '';
+    mapboxgl.accessToken = MAPBOX_TOKEN;
 
     const withCoords = activities.filter((a) => a.coordinates);
 
@@ -89,6 +93,34 @@ export function ActivityMap({ activities, onSelect, className = '' }: Props) {
       map.remove();
     };
   }, [activities, onSelect]);
+
+  // Graceful fallback: a clickable list of activities when there's no map token.
+  if (!MAPBOX_TOKEN) {
+    const withCoords = activities.filter((a) => a.coordinates);
+    return (
+      <div className={`activity-map activity-map--fallback ${className}`}>
+        <div className="activity-map__fallback-inner">
+          <p className="activity-map__fallback-hint">Pick an experience to explore</p>
+          <div className="activity-map__fallback-list">
+            {withCoords.map((a) => (
+              <button
+                key={`${a.destination.slug}-${a.id}`}
+                type="button"
+                className="activity-map__fallback-pin"
+                onClick={() => onSelect(a)}
+              >
+                <span
+                  className="activity-map__fallback-dot"
+                  style={{ background: CATEGORY_COLORS[a.category] || '#ff7a3d' }}
+                />
+                {a.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return <div ref={mapRef} className={`activity-map ${className}`} />;
 }
