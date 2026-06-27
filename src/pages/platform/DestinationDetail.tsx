@@ -1,22 +1,24 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getDestinationBySlug, CATEGORY_LABELS, activityImage } from '@/data/destinations';
 import { usePlatformStore } from '@/lib/store';
-import { ActivityScene } from '@/experience/activities/ActivityScene';
+import { useAuthStore } from '@/lib/authStore';
 import { WeatherWidget } from '@/components/WeatherWidget';
 import { PhotoGallery } from '@/components/PhotoGallery';
+import { ActivityMap, type ActivityWithDest } from '@/components/ActivityMap';
+import { ActivityDetailPanel } from '@/components/ActivityDetailPanel';
 import { shareLink } from '@/lib/share';
-
-const SAMPLE_REVIEWS = [
-  { name: 'Aarav S.', rating: 5, text: 'Genuinely the best-organised trek I have done. Guides were superb.' },
-  { name: 'Meera K.', rating: 5, text: 'Sunrise over the clouds was unreal. Worth every rupee.' },
-  { name: 'Daniel P.', rating: 4, text: 'Stunning scenery, slightly tough climb — bring good shoes!' },
-];
+import { toast } from '@/lib/toastStore';
+import { useNavigate } from 'react-router-dom';
 
 export default function DestinationDetail() {
   const { slug } = useParams<{ slug: string }>();
   const dest = slug ? getDestinationBySlug(slug) : undefined;
   const { toggleSaved, isSaved } = usePlatformStore();
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const [selectedActivity, setSelectedActivity] = useState<ActivityWithDest | null>(null);
 
   if (!dest) {
     return (
@@ -29,11 +31,28 @@ export default function DestinationDetail() {
     );
   }
 
-  const featuredActivity = dest.activities[0];
+  const activitiesWithDest: ActivityWithDest[] = dest.activities.map((a) => ({
+    ...a,
+    destination: dest,
+  }));
+
+  const handleSave = () => {
+    if (!user) {
+      toast('Sign in to save trips ♥', 'info');
+      navigate('/login');
+      return;
+    }
+    toggleSaved(dest.slug);
+  };
 
   return (
     <div className="detail">
-      {/* Split hero: info left, live 3D scene right */}
+      <ActivityDetailPanel
+        activity={selectedActivity}
+        onClose={() => setSelectedActivity(null)}
+      />
+
+      {/* Hero: info left, activity map right */}
       <motion.header
         className="detail__hero detail__hero--split"
         initial={{ opacity: 0 }}
@@ -58,13 +77,10 @@ export default function DestinationDetail() {
           <div className="detail__hero-actions">
             <button
               className={`btn ${isSaved(dest.slug) ? 'btn--primary' : 'btn--ghost'}`}
-              onClick={() => toggleSaved(dest.slug)}
+              onClick={handleSave}
             >
               {isSaved(dest.slug) ? '♥ Saved' : '♡ Save trip'}
             </button>
-            <Link to={`/book/${dest.slug}/${featuredActivity.id}`} className="btn btn--primary">
-              Book now →
-            </Link>
             <button
               className="btn btn--ghost"
               onClick={() =>
@@ -80,10 +96,14 @@ export default function DestinationDetail() {
           </div>
         </div>
 
-        {/* Live 3D scene preview */}
-        <div className="detail__hero-scene" aria-hidden="true">
-          <ActivityScene sceneType={featuredActivity.sceneType} />
-          <span className="detail__hero-scene-label">Live 3D preview</span>
+        {/* Activity map pins — replaces the 3D scene */}
+        <div className="detail__hero-scene detail__hero-map" aria-label="Activity map">
+          <ActivityMap
+            activities={activitiesWithDest}
+            onSelect={(a) => setSelectedActivity(a)}
+            className="detail__activity-map"
+          />
+          <span className="detail__hero-scene-label">Click a pin to explore</span>
         </div>
       </motion.header>
 
@@ -100,13 +120,20 @@ export default function DestinationDetail() {
           />
 
           <section className="detail__activities">
-            <h2>Activities</h2>
+            <h2>Activities <span className="detail__act-hint">— click to see on map</span></h2>
             <div className="activity-list">
               {dest.activities.map((a) => (
-                <article key={a.id} className="activity-row">
+                <article
+                  key={a.id}
+                  className="activity-row activity-row--clickable"
+                  onClick={() => setSelectedActivity({ ...a, destination: dest })}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && setSelectedActivity({ ...a, destination: dest })}
+                >
                   <div
                     className="activity-row__thumb"
-                    style={{ backgroundImage: `url(${activityImage(a.sceneType, 400)})` }}
+                    style={{ backgroundImage: `url(${a.image ?? activityImage(a.sceneType, 400)})` }}
                     aria-hidden="true"
                   />
                   <div className="activity-row__text">
@@ -116,15 +143,18 @@ export default function DestinationDetail() {
                     <div className="activity-row__meta">
                       <span>⏱ {a.durationHours}h</span>
                       <span className={`difficulty difficulty--${a.difficulty}`}>{a.difficulty}</span>
+                      {a.coordinates && <span className="activity-row__pin">📍 On map</span>}
                     </div>
-                    <span className="activity-row__3d">◆ Interactive 3D scene</span>
                   </div>
                   <div className="activity-row__action">
                     <span className="price">₹{a.pricePerPerson.toLocaleString('en-IN')}</span>
                     <span className="price__unit">per person</span>
-                    <Link to={`/book/${dest.slug}/${a.id}`} className="btn btn--primary btn--sm">
-                      Book
-                    </Link>
+                    <button
+                      className="btn btn--primary btn--sm"
+                      onClick={(e) => { e.stopPropagation(); setSelectedActivity({ ...a, destination: dest }); }}
+                    >
+                      Explore →
+                    </button>
                   </div>
                 </article>
               ))}
@@ -134,10 +164,14 @@ export default function DestinationDetail() {
           <section className="detail__reviews">
             <h2>Reviews</h2>
             <div className="reviews">
-              {SAMPLE_REVIEWS.map((r) => (
-                <article key={r.name} className="review">
+              {(dest.activities[0]?.reviews ?? [
+                { author: 'Aarav S.', rating: 5, text: 'Genuinely the best-organised trek I have done. Guides were superb.' },
+                { author: 'Meera K.', rating: 5, text: 'Sunrise over the clouds was unreal. Worth every rupee.' },
+                { author: 'Daniel P.', rating: 4, text: 'Stunning scenery, slightly tough climb — bring good shoes!' },
+              ]).slice(0, 3).map((r) => (
+                <article key={r.author} className="review">
                   <div className="review__head">
-                    <strong>{r.name}</strong>
+                    <strong>{r.author}</strong>
                     <span className="stars">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
                   </div>
                   <p>{r.text}</p>

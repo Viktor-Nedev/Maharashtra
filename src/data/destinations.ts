@@ -1,9 +1,5 @@
 // ---------------------------------------------------------------------------
 // Domain model + seed data for Maharashtra adventure tourism.
-//
-// Drives the booking platform (explore grid, detail pages, booking flow) and the
-// per-activity 3D scenes (each activity carries a `sceneType` that selects a
-// bespoke React Three Fiber scene — see src/experience/activities).
 // ---------------------------------------------------------------------------
 
 export type ActivityCategory =
@@ -14,7 +10,6 @@ export type ActivityCategory =
   | 'climbing'
   | 'wildlife';
 
-/** Selects the bespoke 3D scene rendered for an activity. */
 export type ActivitySceneType =
   | 'trek'
   | 'sunrise'
@@ -35,6 +30,12 @@ export type ActivitySceneType =
   | 'cycle'
   | 'safari';
 
+export interface ActivityReview {
+  author: string;
+  rating: number;
+  text: string;
+}
+
 export interface Activity {
   id: string;
   name: string;
@@ -44,6 +45,9 @@ export interface Activity {
   difficulty: 'easy' | 'moderate' | 'hard' | 'extreme';
   pricePerPerson: number; // INR
   description: string;
+  coordinates?: [number, number]; // [lng, lat]
+  image?: string;
+  reviews?: ActivityReview[];
 }
 
 export interface Operator {
@@ -59,14 +63,12 @@ export interface Destination {
   slug: string;
   name: string;
   region: string;
-  /** Which cinematic scene introduces this destination (1-based). */
   scene: number;
   tagline: string;
   description: string;
-  /** Lng/Lat for the Mapbox world map. */
   coordinates: [number, number];
   heroColor: string;
-  elevation: number; // metres
+  elevation: number;
   bestSeason: string;
   image: string;
   activities: Activity[];
@@ -93,13 +95,172 @@ export const DESTINATIONS: Destination[] = [
     bestSeason: 'Jun – Feb',
     image: img('1506905925346-21bda4d32df4'),
     activities: [
-      { id: 'sahyadri-trek', name: 'Kalsubai Summit Trek', category: 'trekking', sceneType: 'trek', durationHours: 8, difficulty: 'moderate', pricePerPerson: 1800, description: 'Trek to the highest peak in Maharashtra (1646m) for a sea of clouds at dawn.' },
-      { id: 'sahyadri-camp', name: 'Ridge-line Camping', category: 'camping', sceneType: 'camp', durationHours: 18, difficulty: 'easy', pricePerPerson: 2500, description: 'Overnight under the Milky Way on a high basalt ridge with a sunrise trail.' },
-      { id: 'sahyadri-sunrise', name: 'Sunrise Heritage Trail', category: 'trekking', sceneType: 'sunrise', durationHours: 4, difficulty: 'easy', pricePerPerson: 1200, description: 'A gentle pre-dawn trail to a Maratha fort with panoramic golden-hour views.' },
-      { id: 'sahyadri-waterfall', name: 'Monsoon Waterfall Rappel', category: 'climbing', sceneType: 'rappel', durationHours: 5, difficulty: 'hard', pricePerPerson: 3000, description: 'Rappel down a thundering 120ft monsoon waterfall with full safety rigging.' },
-      { id: 'sahyadri-night', name: 'Night Sky Stargazing Trek', category: 'camping', sceneType: 'camp', durationHours: 6, difficulty: 'easy', pricePerPerson: 1500, description: 'A guided night trek to a dark-sky ridge with telescopes and astro-photography.' },
-      { id: 'sahyadri-fall', name: 'Devkund Waterfall Trek', category: 'trekking', sceneType: 'waterfall', durationHours: 6, difficulty: 'moderate', pricePerPerson: 1700, description: 'Trek through dense forest to a thundering plunge-pool waterfall for a swim.' },
-      { id: 'sahyadri-fort', name: 'Maratha Fort Heritage Walk', category: 'trekking', sceneType: 'fortwalk', durationHours: 5, difficulty: 'easy', pricePerPerson: 1400, description: 'A guided walk through the ramparts and gates of a hill-top Maratha fort.' },
+      {
+        id: 'sahyadri-trek',
+        name: 'Kalsubai Summit Trek',
+        category: 'trekking',
+        sceneType: 'trek',
+        durationHours: 8,
+        difficulty: 'moderate',
+        pricePerPerson: 1800,
+        description: 'Trek to the highest peak in Maharashtra (1646m) for a sea of clouds at dawn.',
+        coordinates: [73.6946, 19.6019],
+        reviews: [
+          { author: 'Aarav S.', rating: 5, text: 'Phenomenal sunrise at the summit — clouds below us for miles!' },
+          { author: 'Priya M.', rating: 5, text: 'The guides were excellent and the trail is well-marked.' },
+          { author: 'Daniel R.', rating: 4, text: 'Tough ascent but absolutely worth it. Bring layers.' },
+        ],
+      },
+      {
+        id: 'sahyadri-camp',
+        name: 'Ridge-line Camping',
+        category: 'camping',
+        sceneType: 'camp',
+        durationHours: 18,
+        difficulty: 'easy',
+        pricePerPerson: 2500,
+        description: 'Overnight under the Milky Way on a high basalt ridge with a sunrise trail.',
+        coordinates: [73.4781, 18.7106],
+        reviews: [
+          { author: 'Sneha P.', rating: 5, text: 'Woke up to absolute magic. Stars like I have never seen.' },
+          { author: 'Kiran V.', rating: 5, text: 'Campfire, chai and the Sahyadri horizon — perfect.' },
+        ],
+      },
+      {
+        id: 'sahyadri-sunrise',
+        name: 'Sinhagad Sunrise Trail',
+        category: 'trekking',
+        sceneType: 'sunrise',
+        durationHours: 4,
+        difficulty: 'easy',
+        pricePerPerson: 1200,
+        description: 'A gentle pre-dawn trail to the legendary Sinhagad fort for panoramic golden-hour views.',
+        coordinates: [73.7554, 18.3663],
+        reviews: [
+          { author: 'Meera K.', rating: 5, text: 'Sunrise over the clouds was unreal. Worth every rupee.' },
+          { author: 'Rohan B.', rating: 4, text: 'Great for beginners. The fort itself has fascinating history.' },
+        ],
+      },
+      {
+        id: 'sahyadri-waterfall',
+        name: 'Monsoon Waterfall Rappel',
+        category: 'climbing',
+        sceneType: 'rappel',
+        durationHours: 5,
+        difficulty: 'hard',
+        pricePerPerson: 3000,
+        description: 'Rappel down a thundering 120ft monsoon waterfall with full safety rigging.',
+        coordinates: [73.48, 18.6],
+        reviews: [
+          { author: 'Vikram N.', rating: 5, text: 'An absolute adrenaline rush. Totally safe with expert guides.' },
+          { author: 'Aditi S.', rating: 5, text: 'The power of the waterfall is incredible. Go in July!' },
+        ],
+      },
+      {
+        id: 'sahyadri-night',
+        name: 'Night Sky Stargazing Trek',
+        category: 'camping',
+        sceneType: 'camp',
+        durationHours: 6,
+        difficulty: 'easy',
+        pricePerPerson: 1500,
+        description: 'A guided night trek to a dark-sky ridge with telescopes and astro-photography.',
+        coordinates: [73.4053, 18.756],
+        reviews: [
+          { author: 'Ananya R.', rating: 5, text: 'The Milky Way was visible with the naked eye. Stunning.' },
+          { author: 'Siddharth L.', rating: 4, text: 'Excellent guide explained constellations the whole time.' },
+        ],
+      },
+      {
+        id: 'sahyadri-fall',
+        name: 'Devkund Waterfall Trek',
+        category: 'trekking',
+        sceneType: 'waterfall',
+        durationHours: 6,
+        difficulty: 'moderate',
+        pricePerPerson: 1700,
+        description: 'Trek through dense forest to a thundering plunge-pool waterfall for a swim.',
+        coordinates: [73.45, 18.55],
+        reviews: [
+          { author: 'Rhea D.', rating: 5, text: 'The most pristine waterfall I have seen. Crystal clear pool!' },
+          { author: 'Arjun K.', rating: 5, text: 'Worth every step of the trek. Take waterproof shoes.' },
+        ],
+      },
+      {
+        id: 'sahyadri-fort',
+        name: 'Lohagad Fort Heritage Walk',
+        category: 'trekking',
+        sceneType: 'fortwalk',
+        durationHours: 5,
+        difficulty: 'easy',
+        pricePerPerson: 1400,
+        description: 'Walk through the imposing gates and battlements of Lohagad, the "Iron Fort".',
+        coordinates: [73.4781, 18.7106],
+        reviews: [
+          { author: 'Nisha T.', rating: 5, text: 'The history is incredible — Shivaji captured this fort twice!' },
+          { author: 'Sam P.', rating: 4, text: 'Easy walk with great views over Pawna Lake from the top.' },
+        ],
+      },
+      {
+        id: 'sahyadri-rajmachi',
+        name: 'Rajmachi Fort Expedition',
+        category: 'trekking',
+        sceneType: 'fortwalk',
+        durationHours: 7,
+        difficulty: 'moderate',
+        pricePerPerson: 2000,
+        description: 'Trek to the twin-peak Rajmachi fort, with views of Sahyadri valleys and monsoon clouds.',
+        coordinates: [73.39, 18.829],
+        reviews: [
+          { author: 'Tanvi G.', rating: 5, text: 'Remote and atmospheric — felt like stepping back in time.' },
+          { author: 'Jay M.', rating: 5, text: 'Less crowded than Lohagad and equally stunning.' },
+        ],
+      },
+      {
+        id: 'sahyadri-torna',
+        name: 'Torna Fort Conquest',
+        category: 'trekking',
+        sceneType: 'fortwalk',
+        durationHours: 8,
+        difficulty: 'hard',
+        pricePerPerson: 2200,
+        description: 'Scale Prachandagad — the first fort captured by the young Shivaji Maharaj in 1643.',
+        coordinates: [73.618, 18.276],
+        reviews: [
+          { author: 'Vivek A.', rating: 5, text: 'One of the best treks in Sahyadri. Views are unmatched.' },
+          { author: 'Pooja N.', rating: 4, text: 'Hard climb but you feel like royalty at the top.' },
+        ],
+      },
+      {
+        id: 'sahyadri-sandhan',
+        name: 'Sandhan Valley Canyon Trek',
+        category: 'trekking',
+        sceneType: 'caving',
+        durationHours: 9,
+        difficulty: 'hard',
+        pricePerPerson: 3200,
+        description: 'Descend the "Valley of Shadow" — a slot canyon with rappels and water crossings.',
+        coordinates: [73.78, 19.542],
+        reviews: [
+          { author: 'Omkar R.', rating: 5, text: 'India\'s Grand Canyon did not disappoint. Epic adventure!' },
+          { author: 'Shruti B.', rating: 5, text: 'Technically challenging and visually stunning. A must-do.' },
+        ],
+      },
+      {
+        id: 'sahyadri-malshej',
+        name: 'Malshej Ghat Monsoon Camp',
+        category: 'camping',
+        sceneType: 'camp',
+        durationHours: 20,
+        difficulty: 'easy',
+        pricePerPerson: 2800,
+        description: 'Camp in the heart of Malshej Ghat during monsoon — waterfalls on every cliff face.',
+        coordinates: [73.8167, 19.2833],
+        reviews: [
+          { author: 'Kavya S.', rating: 5, text: 'Waterfalls literally everywhere. The most magical place.' },
+          { author: 'Dev P.', rating: 4, text: 'Flamingos at dawn made it extra special.' },
+        ],
+      },
     ],
     operators: [
       { id: 'op-trekmh', name: 'TrekMaharashtra Collective', rating: 4.8, verified: true, since: 2014 },
@@ -122,13 +283,126 @@ export const DESTINATIONS: Destination[] = [
     bestSeason: 'Oct – Mar',
     image: img('1544551763-46a013bb70d5'),
     activities: [
-      { id: 'pawna-kayak', name: 'Sunset Kayaking', category: 'water', sceneType: 'kayak', durationHours: 2, difficulty: 'easy', pricePerPerson: 900, description: 'Paddle across glassy water as the forts turn amber at dusk.' },
-      { id: 'pawna-raft', name: 'White-water Rafting', category: 'water', sceneType: 'raft', durationHours: 3, difficulty: 'moderate', pricePerPerson: 1600, description: 'Monsoon-fed rapids on the feeder rivers — grade II–III thrills.' },
-      { id: 'pawna-boat', name: 'Heritage Boating', category: 'water', sceneType: 'boat', durationHours: 1.5, difficulty: 'easy', pricePerPerson: 700, description: 'A calm guided boat tour beneath the ramparts of Tung fort.' },
-      { id: 'pawna-lakecamp', name: 'Lakeside Camping', category: 'camping', sceneType: 'camp', durationHours: 16, difficulty: 'easy', pricePerPerson: 2200, description: 'Tents on the shore, a bonfire, and the Lohagad fort mirrored in the water.' },
-      { id: 'pawna-scuba', name: 'Reservoir Discovery Dive', category: 'water', sceneType: 'scuba', durationHours: 3, difficulty: 'moderate', pricePerPerson: 3500, description: 'A guided confined-water discovery dive for first-time divers.' },
-      { id: 'pawna-cycle', name: 'Lakeside Cycling Tour', category: 'trekking', sceneType: 'cycle', durationHours: 3, difficulty: 'easy', pricePerPerson: 1100, description: 'Pedal the shoreline trails between forts on a guided mountain-bike loop.' },
-      { id: 'pawna-fort', name: 'Tung Fort Sunset Walk', category: 'trekking', sceneType: 'fortwalk', durationHours: 4, difficulty: 'moderate', pricePerPerson: 1300, description: 'Climb the conical "Kathingad" fort for a 360° sunset over the reservoir.' },
+      {
+        id: 'pawna-kayak',
+        name: 'Sunset Kayaking',
+        category: 'water',
+        sceneType: 'kayak',
+        durationHours: 2,
+        difficulty: 'easy',
+        pricePerPerson: 900,
+        description: 'Paddle across glassy water as the forts turn amber at dusk.',
+        coordinates: [73.471, 18.681],
+        reviews: [
+          { author: 'Ishita R.', rating: 5, text: 'The golden hour on the lake is absolutely magical.' },
+          { author: 'Nikhil S.', rating: 5, text: 'Perfect for beginners. Guides were patient and helpful.' },
+        ],
+      },
+      {
+        id: 'pawna-raft',
+        name: 'White-water Rafting',
+        category: 'water',
+        sceneType: 'raft',
+        durationHours: 3,
+        difficulty: 'moderate',
+        pricePerPerson: 1600,
+        description: 'Monsoon-fed rapids on the Kundalika river — grade II–III thrills at Kolad.',
+        coordinates: [73.27, 18.41],
+        reviews: [
+          { author: 'Rahul G.', rating: 5, text: 'Perfect rapids — exciting but safe. Best 3 hours ever.' },
+          { author: 'Anika P.', rating: 4, text: 'Kolad river is fantastic. Go in monsoon for the best flow.' },
+        ],
+      },
+      {
+        id: 'pawna-boat',
+        name: 'Heritage Boating',
+        category: 'water',
+        sceneType: 'boat',
+        durationHours: 1.5,
+        difficulty: 'easy',
+        pricePerPerson: 700,
+        description: 'A calm guided boat tour beneath the ramparts of Tung fort.',
+        coordinates: [73.471, 18.681],
+        reviews: [
+          { author: 'Leela T.', rating: 5, text: 'So peaceful. The fort reflections in the water were beautiful.' },
+          { author: 'Harsh V.', rating: 4, text: 'Great way to see the forts from the water.' },
+        ],
+      },
+      {
+        id: 'pawna-lakecamp',
+        name: 'Lakeside Camping',
+        category: 'camping',
+        sceneType: 'camp',
+        durationHours: 16,
+        difficulty: 'easy',
+        pricePerPerson: 2200,
+        description: 'Tents on the shore, a bonfire, and the Lohagad fort mirrored in the water.',
+        coordinates: [73.471, 18.681],
+        reviews: [
+          { author: 'Swati M.', rating: 5, text: 'The bonfire with Lohagad in the background — movie magic.' },
+          { author: 'Kunal J.', rating: 5, text: 'Woke up to mist on the lake. Nothing better in the world.' },
+        ],
+      },
+      {
+        id: 'pawna-scuba',
+        name: 'Reservoir Discovery Dive',
+        category: 'water',
+        sceneType: 'scuba',
+        durationHours: 3,
+        difficulty: 'moderate',
+        pricePerPerson: 3500,
+        description: 'A guided confined-water discovery dive for first-time divers in the reservoir.',
+        coordinates: [73.471, 18.681],
+        reviews: [
+          { author: 'Mansi D.', rating: 4, text: 'First time diving and I was not scared at all — great guides.' },
+          { author: 'Yash A.', rating: 4, text: 'Visibility is decent. Interesting freshwater experience.' },
+        ],
+      },
+      {
+        id: 'pawna-cycle',
+        name: 'Lakeside Cycling Tour',
+        category: 'trekking',
+        sceneType: 'cycle',
+        durationHours: 3,
+        difficulty: 'easy',
+        pricePerPerson: 1100,
+        description: 'Pedal the shoreline trails between forts on a guided mountain-bike loop.',
+        coordinates: [73.471, 18.681],
+        reviews: [
+          { author: 'Trisha K.', rating: 5, text: 'Perfect trail, perfect views, great bikes. Loved every minute.' },
+          { author: 'Rohan S.', rating: 4, text: 'Excellent route with easy terrain and great fort sightings.' },
+        ],
+      },
+      {
+        id: 'pawna-fort',
+        name: 'Tikona Fort Sunset Walk',
+        category: 'trekking',
+        sceneType: 'fortwalk',
+        durationHours: 4,
+        difficulty: 'moderate',
+        pricePerPerson: 1300,
+        description: 'Climb the conical Tikona fort for a 360° sunset over the reservoir.',
+        coordinates: [73.475, 18.64],
+        reviews: [
+          { author: 'Deepa N.', rating: 5, text: 'Tikona from the lake is stunning — the triangle fort shape.' },
+          { author: 'Aman V.', rating: 5, text: 'Sunset view from the top is one of a kind.' },
+        ],
+      },
+      {
+        id: 'pawna-bhandardara',
+        name: 'Bhandardara Lake Escape',
+        category: 'camping',
+        sceneType: 'camp',
+        durationHours: 20,
+        difficulty: 'easy',
+        pricePerPerson: 2600,
+        description: 'Camp beside Arthur Lake at Bhandardara — waterfalls cascade into the reservoir.',
+        coordinates: [73.75, 19.5333],
+        reviews: [
+          { author: 'Pooja R.', rating: 5, text: 'Bhandardara is paradise — the Umbrella Falls nearby are stunning.' },
+          { author: 'Saurabh M.', rating: 5, text: 'Best camping spot in Maharashtra, hands down.' },
+        ],
+      },
     ],
     operators: [
       { id: 'op-lakeside', name: 'Lakeside Adventures', rating: 4.7, verified: true, since: 2016 },
@@ -151,13 +425,111 @@ export const DESTINATIONS: Destination[] = [
     bestSeason: 'Aug – Jan',
     image: img('1448375240586-882707db888b'),
     activities: [
-      { id: 'bhima-zip', name: 'Canopy Zipline', category: 'aerial', sceneType: 'zipline', durationHours: 2, difficulty: 'moderate', pricePerPerson: 1400, description: 'Fly between forest platforms on a 600m zipline above the green.' },
-      { id: 'bhima-hike', name: 'Reserve Forest Hike', category: 'trekking', sceneType: 'trek', durationHours: 5, difficulty: 'moderate', pricePerPerson: 1300, description: 'A guided naturalist hike through old-growth forest and stream crossings.' },
-      { id: 'bhima-trail', name: 'Wildlife Nature Trail', category: 'wildlife', sceneType: 'wildlife', durationHours: 3, difficulty: 'easy', pricePerPerson: 1000, description: 'Track the giant squirrel and endemic birds with a forest guide.' },
-      { id: 'bhima-cave', name: 'Ancient Cave Exploration', category: 'climbing', sceneType: 'caving', durationHours: 4, difficulty: 'moderate', pricePerPerson: 1800, description: 'Explore lantern-lit lava caves and rock-cut shrines deep in the reserve.' },
-      { id: 'bhima-birding', name: 'Dawn Birding Safari', category: 'wildlife', sceneType: 'wildlife', durationHours: 4, difficulty: 'easy', pricePerPerson: 1200, description: 'A slow dawn walk for hornbills, malabar trogons and the giant squirrel.' },
-      { id: 'bhima-jeep', name: 'Reserve Jeep Safari', category: 'wildlife', sceneType: 'safari', durationHours: 3, difficulty: 'easy', pricePerPerson: 2200, description: 'An open-jeep safari along forest tracks for elephants, gaur and deer.' },
-      { id: 'bhima-fall', name: 'Hidden Waterfall Trail', category: 'trekking', sceneType: 'waterfall', durationHours: 4, difficulty: 'moderate', pricePerPerson: 1500, description: 'A monsoon trail to a secluded waterfall deep inside the reserve canopy.' },
+      {
+        id: 'bhima-zip',
+        name: 'Canopy Zipline',
+        category: 'aerial',
+        sceneType: 'zipline',
+        durationHours: 2,
+        difficulty: 'moderate',
+        pricePerPerson: 1400,
+        description: 'Fly between forest platforms on a 600m zipline above the green canopy.',
+        coordinates: [73.5363, 19.0728],
+        reviews: [
+          { author: 'Neha S.', rating: 5, text: 'Flying over the forest canopy was surreal. Best in class.' },
+          { author: 'Kartik P.', rating: 5, text: 'Exhilarating! The forest below is so dense and beautiful.' },
+        ],
+      },
+      {
+        id: 'bhima-hike',
+        name: 'Reserve Forest Hike',
+        category: 'trekking',
+        sceneType: 'trek',
+        durationHours: 5,
+        difficulty: 'moderate',
+        pricePerPerson: 1300,
+        description: 'A guided naturalist hike through old-growth forest and stream crossings.',
+        coordinates: [73.5363, 19.0728],
+        reviews: [
+          { author: 'Gauri L.', rating: 5, text: 'The giant squirrel sighting made my year. Wonderful guide!' },
+          { author: 'Arun M.', rating: 4, text: 'Dense forest, cool temperatures, and fantastic flora.' },
+        ],
+      },
+      {
+        id: 'bhima-trail',
+        name: 'Wildlife Nature Trail',
+        category: 'wildlife',
+        sceneType: 'wildlife',
+        durationHours: 3,
+        difficulty: 'easy',
+        pricePerPerson: 1000,
+        description: 'Track the giant squirrel and endemic birds with a trained forest guide.',
+        coordinates: [73.5363, 19.0728],
+        reviews: [
+          { author: 'Priti K.', rating: 5, text: 'Spotted the giant squirrel and a hornbill in one walk!' },
+          { author: 'Suresh N.', rating: 4, text: 'Very peaceful and educational. Great for families.' },
+        ],
+      },
+      {
+        id: 'bhima-cave',
+        name: 'Ancient Cave Exploration',
+        category: 'climbing',
+        sceneType: 'caving',
+        durationHours: 4,
+        difficulty: 'moderate',
+        pricePerPerson: 1800,
+        description: 'Explore lantern-lit lava caves and rock-cut shrines deep in the reserve.',
+        coordinates: [73.5363, 19.0728],
+        reviews: [
+          { author: 'Ashish D.', rating: 5, text: 'The cave shrines are ancient and atmospheric. Incredible experience.' },
+          { author: 'Rekha S.', rating: 4, text: 'Fascinating geology and history combined.' },
+        ],
+      },
+      {
+        id: 'bhima-birding',
+        name: 'Karnala Bird Sanctuary Dawn Walk',
+        category: 'wildlife',
+        sceneType: 'wildlife',
+        durationHours: 4,
+        difficulty: 'easy',
+        pricePerPerson: 1200,
+        description: 'A slow dawn walk at Karnala for hornbills, malabar trogons and over 200 bird species.',
+        coordinates: [73.116, 18.892],
+        reviews: [
+          { author: 'Sunita R.', rating: 5, text: 'Ticked off 30 species in one morning! Paradise for birders.' },
+          { author: 'Bharat V.', rating: 5, text: 'The Karnala fort in the background adds a dramatic touch.' },
+        ],
+      },
+      {
+        id: 'bhima-jeep',
+        name: 'Reserve Jeep Safari',
+        category: 'wildlife',
+        sceneType: 'safari',
+        durationHours: 3,
+        difficulty: 'easy',
+        pricePerPerson: 2200,
+        description: 'An open-jeep safari along forest tracks looking for leopard, gaur and deer.',
+        coordinates: [73.5363, 19.0728],
+        reviews: [
+          { author: 'Rajesh P.', rating: 4, text: 'Spotted gaur and barking deer. Jeep was comfortable.' },
+          { author: 'Maya B.', rating: 5, text: 'Exhilarating drive through the forest. Excellent naturalist guide.' },
+        ],
+      },
+      {
+        id: 'bhima-fall',
+        name: 'Hidden Waterfall Trail',
+        category: 'trekking',
+        sceneType: 'waterfall',
+        durationHours: 4,
+        difficulty: 'moderate',
+        pricePerPerson: 1500,
+        description: 'A monsoon trail to a secluded waterfall deep inside the reserve canopy.',
+        coordinates: [73.5363, 19.0728],
+        reviews: [
+          { author: 'Divya K.', rating: 5, text: 'The hidden waterfall is absolutely pristine and worth every step.' },
+          { author: 'Aditya N.', rating: 4, text: 'Remote and beautiful. The forest path is half the fun.' },
+        ],
+      },
     ],
     operators: [
       { id: 'op-wildtrails', name: 'WildTrails Bhimashankar', rating: 4.9, verified: true, since: 2012 },
@@ -179,12 +551,112 @@ export const DESTINATIONS: Destination[] = [
     bestSeason: 'Oct – Feb',
     image: img('1551632811-561732d1e306'),
     activities: [
-      { id: 'hari-para', name: 'Cliff Paragliding', category: 'aerial', sceneType: 'paraglide', durationHours: 2, difficulty: 'hard', pricePerPerson: 4500, description: 'Tandem flight off the Konkan Kada with 1000m of air beneath you.' },
-      { id: 'hari-climb', name: 'Rock Climbing Ascent', category: 'climbing', sceneType: 'climb', durationHours: 6, difficulty: 'extreme', pricePerPerson: 3800, description: 'Technical multi-pitch basalt climbing with certified mountain guides.' },
-      { id: 'hari-extreme', name: 'Edge Rappelling', category: 'climbing', sceneType: 'rappel', durationHours: 4, difficulty: 'hard', pricePerPerson: 3200, description: 'Descend a sheer 200m face with full safety rigging and instruction.' },
-      { id: 'hari-balloon', name: 'Sunrise Hot-Air Balloon', category: 'aerial', sceneType: 'hotair', durationHours: 2, difficulty: 'easy', pricePerPerson: 6500, description: 'Drift over the Malshej cliffs at first light in a hot-air balloon.' },
-      { id: 'hari-trek', name: 'Konkan Kada Trek', category: 'trekking', sceneType: 'trek', durationHours: 9, difficulty: 'hard', pricePerPerson: 2400, description: 'A demanding trek to the lip of the great concave cliff for sunset.' },
-      { id: 'hari-fort', name: 'Ancient Fort & Cave Walk', category: 'trekking', sceneType: 'fortwalk', durationHours: 5, difficulty: 'moderate', pricePerPerson: 1600, description: 'Explore the 6th-century fort, Kedareshwar cave and Saptatirtha tank.' },
+      {
+        id: 'hari-para',
+        name: 'Konkan Kada Cliff Paragliding',
+        category: 'aerial',
+        sceneType: 'paraglide',
+        durationHours: 2,
+        difficulty: 'hard',
+        pricePerPerson: 4500,
+        description: 'Tandem flight off the Konkan Kada with 1,800ft of air beneath you.',
+        coordinates: [73.775, 19.3867],
+        reviews: [
+          { author: 'Vikrant S.', rating: 5, text: 'The most incredible experience of my life. Absolutely breathtaking.' },
+          { author: 'Pallavi R.', rating: 5, text: 'Launching off that cliff edge — nothing prepares you for it.' },
+          { author: 'Harsh G.', rating: 5, text: 'Pilot was fantastic. I never felt unsafe for a second.' },
+        ],
+      },
+      {
+        id: 'hari-climb',
+        name: 'Rock Climbing Ascent',
+        category: 'climbing',
+        sceneType: 'climb',
+        durationHours: 6,
+        difficulty: 'extreme',
+        pricePerPerson: 3800,
+        description: 'Technical multi-pitch basalt climbing with certified mountain guides.',
+        coordinates: [73.775, 19.3867],
+        reviews: [
+          { author: 'Sameer K.', rating: 5, text: 'Serious climbing on world-class basalt. A dream route.' },
+          { author: 'Neetha P.', rating: 4, text: 'Challenging but the guides are top-notch. Very safe.' },
+        ],
+      },
+      {
+        id: 'hari-extreme',
+        name: 'Edge Rappelling',
+        category: 'climbing',
+        sceneType: 'rappel',
+        durationHours: 4,
+        difficulty: 'hard',
+        pricePerPerson: 3200,
+        description: 'Descend a sheer 200m face with full safety rigging and expert instruction.',
+        coordinates: [73.775, 19.3867],
+        reviews: [
+          { author: 'Pradeep V.', rating: 5, text: 'Terrifying in the best possible way. Views on descent are insane.' },
+          { author: 'Sneha A.', rating: 5, text: 'Heart pounding the whole time. Totally recommended for thrill-seekers.' },
+        ],
+      },
+      {
+        id: 'hari-balloon',
+        name: 'Sunrise Hot-Air Balloon',
+        category: 'aerial',
+        sceneType: 'hotair',
+        durationHours: 2,
+        difficulty: 'easy',
+        pricePerPerson: 6500,
+        description: 'Drift over the Malshej cliffs at first light in a luxury hot-air balloon.',
+        coordinates: [73.562, 18.758],
+        reviews: [
+          { author: 'Riya M.', rating: 5, text: 'Words cannot describe the sunrise from the balloon. Magical.' },
+          { author: 'Sunil B.', rating: 5, text: 'Worth every rupee. Champagne landing was a beautiful touch.' },
+        ],
+      },
+      {
+        id: 'hari-trek',
+        name: 'Konkan Kada Trek',
+        category: 'trekking',
+        sceneType: 'trek',
+        durationHours: 9,
+        difficulty: 'hard',
+        pricePerPerson: 2400,
+        description: 'A demanding trek to the lip of the great concave cliff for a sunset to remember.',
+        coordinates: [73.775, 19.3867],
+        reviews: [
+          { author: 'Chirag S.', rating: 5, text: 'Standing at the edge of Konkan Kada is life-changing.' },
+          { author: 'Vaibhavi N.', rating: 4, text: 'Hard work but the payoff is unlike anywhere else in India.' },
+        ],
+      },
+      {
+        id: 'hari-fort',
+        name: 'Ancient Fort & Cave Walk',
+        category: 'trekking',
+        sceneType: 'fortwalk',
+        durationHours: 5,
+        difficulty: 'moderate',
+        pricePerPerson: 1600,
+        description: 'Explore the 6th-century fort, Kedareshwar cave and Saptatirtha tank.',
+        coordinates: [73.775, 19.3867],
+        reviews: [
+          { author: 'Lalitha K.', rating: 5, text: 'Kedareshwar cave is spellbinding. The linga in water is ancient.' },
+          { author: 'Mihail P.', rating: 4, text: 'Fascinating history and beautiful views on the way up.' },
+        ],
+      },
+      {
+        id: 'hari-kamshet',
+        name: 'Kamshet Paragliding Hub',
+        category: 'aerial',
+        sceneType: 'paraglide',
+        durationHours: 3,
+        difficulty: 'moderate',
+        pricePerPerson: 3500,
+        description: 'India\'s paragliding capital — tandem flights and a training school at Kamshet.',
+        coordinates: [73.562, 18.758],
+        reviews: [
+          { author: 'Arnav R.', rating: 5, text: 'Kamshet is perfect for first-timers and pros alike. Great thermals.' },
+          { author: 'Nandini S.', rating: 5, text: 'Multiple flights in one day! The team is exceptional.' },
+        ],
+      },
     ],
     operators: [
       { id: 'op-vertical', name: 'Vertical Limits MH', rating: 4.8, verified: true, since: 2015 },
@@ -207,12 +679,141 @@ export const DESTINATIONS: Destination[] = [
     bestSeason: 'Oct – Jun',
     image: img('1469474968028-56623f02e42e'),
     activities: [
-      { id: 'maha-para', name: 'Valley Paragliding', category: 'aerial', sceneType: 'paraglide', durationHours: 1.5, difficulty: 'moderate', pricePerPerson: 3800, description: 'Launch off a plateau edge and soar over the strawberry valleys.' },
-      { id: 'maha-trek', name: 'Plateau Sunset Trek', category: 'trekking', sceneType: 'sunrise', durationHours: 4, difficulty: 'easy', pricePerPerson: 1100, description: 'Walk the table-top plateau to Arthur\'s Seat for a golden valley sunset.' },
-      { id: 'maha-boat', name: 'Venna Lake Boating', category: 'water', sceneType: 'boat', durationHours: 1, difficulty: 'easy', pricePerPerson: 600, description: 'Pedal and row boats on the tranquil, tree-lined Venna Lake.' },
-      { id: 'maha-zip', name: 'Forest Zipline Circuit', category: 'aerial', sceneType: 'zipline', durationHours: 2, difficulty: 'moderate', pricePerPerson: 1500, description: 'A multi-line zip circuit through the dense plateau forest.' },
-      { id: 'maha-cycle', name: 'Strawberry Valley Cycling', category: 'trekking', sceneType: 'cycle', durationHours: 3, difficulty: 'easy', pricePerPerson: 1000, description: 'A gentle ride past strawberry farms and plateau viewpoints.' },
-      { id: 'maha-fall', name: 'Lingmala Waterfall Trail', category: 'trekking', sceneType: 'waterfall', durationHours: 3, difficulty: 'easy', pricePerPerson: 900, description: 'A short forest trail to the 600ft Lingmala falls viewing decks.' },
+      {
+        id: 'maha-para',
+        name: 'Panchgani Valley Paragliding',
+        category: 'aerial',
+        sceneType: 'paraglide',
+        durationHours: 1.5,
+        difficulty: 'moderate',
+        pricePerPerson: 3800,
+        description: 'Launch off Panchgani\'s Table Land and soar over the Krishna Valley.',
+        coordinates: [73.801, 17.924],
+        reviews: [
+          { author: 'Shraddha M.', rating: 5, text: 'Panchgani from above is breathtaking. Table Land looks alien!' },
+          { author: 'Aditya L.', rating: 5, text: 'Smooth flight, friendly pilot, incredible views. 10/10.' },
+        ],
+      },
+      {
+        id: 'maha-trek',
+        name: 'Plateau Sunset Trek',
+        category: 'trekking',
+        sceneType: 'sunrise',
+        durationHours: 4,
+        difficulty: 'easy',
+        pricePerPerson: 1100,
+        description: 'Walk the table-top plateau to Arthur\'s Seat for a golden valley sunset.',
+        coordinates: [73.6578, 17.9243],
+        reviews: [
+          { author: 'Preeti V.', rating: 5, text: 'Arthur\'s Seat at sunset is one of my top Maharashtra memories.' },
+          { author: 'Roshan K.', rating: 4, text: 'Easy, beautiful walk. Great for families and couples.' },
+        ],
+      },
+      {
+        id: 'maha-boat',
+        name: 'Venna Lake Boating',
+        category: 'water',
+        sceneType: 'boat',
+        durationHours: 1,
+        difficulty: 'easy',
+        pricePerPerson: 600,
+        description: 'Pedal and row boats on the tranquil, tree-lined Venna Lake.',
+        coordinates: [73.6578, 17.9243],
+        reviews: [
+          { author: 'Geeta S.', rating: 4, text: 'Lovely lake setting, perfect for a calm afternoon.' },
+          { author: 'Karan P.', rating: 4, text: 'Peaceful and scenic. Great for kids.' },
+        ],
+      },
+      {
+        id: 'maha-zip',
+        name: 'Forest Zipline Circuit',
+        category: 'aerial',
+        sceneType: 'zipline',
+        durationHours: 2,
+        difficulty: 'moderate',
+        pricePerPerson: 1500,
+        description: 'A multi-line zip circuit through the dense plateau forest.',
+        coordinates: [73.6578, 17.9243],
+        reviews: [
+          { author: 'Vishal R.', rating: 5, text: 'Flying through the treetops with valley views — pure joy.' },
+          { author: 'Tanya M.', rating: 4, text: 'Well-maintained equipment. Great fun for the whole group.' },
+        ],
+      },
+      {
+        id: 'maha-cycle',
+        name: 'Strawberry Valley Cycling',
+        category: 'trekking',
+        sceneType: 'cycle',
+        durationHours: 3,
+        difficulty: 'easy',
+        pricePerPerson: 1000,
+        description: 'A gentle ride past strawberry farms and plateau viewpoints.',
+        coordinates: [73.6578, 17.9243],
+        reviews: [
+          { author: 'Anjali K.', rating: 5, text: 'Strawberry picking along the way was a fun bonus!' },
+          { author: 'Sanjay N.', rating: 4, text: 'Flat roads, great scenery, fresh strawberries. Perfect day.' },
+        ],
+      },
+      {
+        id: 'maha-fall',
+        name: 'Lingmala Waterfall Trail',
+        category: 'trekking',
+        sceneType: 'waterfall',
+        durationHours: 3,
+        difficulty: 'easy',
+        pricePerPerson: 900,
+        description: 'A short forest trail to the 600ft Lingmala falls viewing decks.',
+        coordinates: [73.6578, 17.9243],
+        reviews: [
+          { author: 'Hema R.', rating: 5, text: 'The view of Lingmala from the deck is spectacular in monsoon.' },
+          { author: 'Vikash P.', rating: 4, text: 'Easy walk, beautiful falls. Go in July for maximum impact.' },
+        ],
+      },
+      {
+        id: 'maha-panchgani',
+        name: 'Panchgani Table Land Camp',
+        category: 'camping',
+        sceneType: 'camp',
+        durationHours: 18,
+        difficulty: 'easy',
+        pricePerPerson: 2400,
+        description: 'Camp on Asia\'s second-largest plateau with 360° valley views at dawn.',
+        coordinates: [73.799, 17.924],
+        reviews: [
+          { author: 'Swara M.', rating: 5, text: 'Camping on the plateau with the Deccan below — unforgettable.' },
+          { author: 'Tejas B.', rating: 5, text: 'The Table Land sunrise made everyone emotional. Worth every moment.' },
+        ],
+      },
+      {
+        id: 'maha-lonavala',
+        name: 'Lonavala Waterfall & Cave Trek',
+        category: 'trekking',
+        sceneType: 'waterfall',
+        durationHours: 6,
+        difficulty: 'moderate',
+        pricePerPerson: 1600,
+        description: 'Trek the lush hills above Lonavala to monsoon waterfalls and Karla Caves.',
+        coordinates: [73.406, 18.754],
+        reviews: [
+          { author: 'Mihir S.', rating: 5, text: 'Lonavala is magical in monsoon — green everywhere, waterfalls everywhere.' },
+          { author: 'Radhika P.', rating: 4, text: 'The Karla Caves add great history to the adventure.' },
+        ],
+      },
+      {
+        id: 'maha-matheran',
+        name: 'Matheran Heritage Trail',
+        category: 'trekking',
+        sceneType: 'trek',
+        durationHours: 5,
+        difficulty: 'easy',
+        pricePerPerson: 1300,
+        description: 'Walk the car-free hill station of Matheran and its famous lookout points.',
+        coordinates: [73.271, 18.988],
+        reviews: [
+          { author: 'Leena V.', rating: 5, text: 'Matheran without cars is so peaceful. The toy train is a bonus!' },
+          { author: 'Omkar G.', rating: 4, text: 'Great walking trails and multiple viewpoints. Very serene.' },
+        ],
+      },
     ],
     operators: [
       { id: 'op-ghatglide', name: 'GhatGlide', rating: 4.6, verified: true, since: 2016 },
@@ -234,12 +835,157 @@ export const DESTINATIONS: Destination[] = [
     bestSeason: 'Nov – May',
     image: img('1507525428034-b723cf961d3e'),
     activities: [
-      { id: 'tark-scuba', name: 'Coral Reef Scuba Dive', category: 'water', sceneType: 'scuba', durationHours: 3, difficulty: 'moderate', pricePerPerson: 4200, description: 'Dive vibrant nearshore reefs with PADI-certified dive masters.' },
-      { id: 'tark-kayak', name: 'Backwater Kayaking', category: 'water', sceneType: 'kayak', durationHours: 2, difficulty: 'easy', pricePerPerson: 1000, description: 'Paddle the calm Karli backwaters through mangrove channels.' },
-      { id: 'tark-boat', name: 'Dolphin Spotting Boat', category: 'water', sceneType: 'boat', durationHours: 2, difficulty: 'easy', pricePerPerson: 1200, description: 'A morning boat trip to spot wild dolphins off the Tarkarli shore.' },
-      { id: 'tark-camp', name: 'Beach Bonfire Camping', category: 'camping', sceneType: 'camp', durationHours: 14, difficulty: 'easy', pricePerPerson: 2000, description: 'Beachfront tents, a bonfire and a sky full of stars by the sea.' },
-      { id: 'tark-fort', name: 'Sindhudurg Sea-Fort Tour', category: 'trekking', sceneType: 'fortwalk', durationHours: 3, difficulty: 'easy', pricePerPerson: 1300, description: 'Boat across to Shivaji\'s island sea-fort and walk its ramparts.' },
-      { id: 'tark-cycle', name: 'Coastal Village Cycling', category: 'trekking', sceneType: 'cycle', durationHours: 2.5, difficulty: 'easy', pricePerPerson: 950, description: 'Ride palm-lined lanes between fishing villages and quiet beaches.' },
+      {
+        id: 'tark-scuba',
+        name: 'Coral Reef Scuba Dive',
+        category: 'water',
+        sceneType: 'scuba',
+        durationHours: 3,
+        difficulty: 'moderate',
+        pricePerPerson: 4200,
+        description: 'Dive vibrant nearshore reefs with PADI-certified dive masters.',
+        coordinates: [73.4833, 16.0333],
+        reviews: [
+          { author: 'Kavita R.', rating: 5, text: 'Saw three species of parrotfish in one dive! Crystal clear water.' },
+          { author: 'Subhash P.', rating: 5, text: 'Best diving in Maharashtra by far. Excellent instructors.' },
+          { author: 'Emma W.', rating: 4, text: 'Beautiful reefs and warm water. Great visibility in Nov–Feb.' },
+        ],
+      },
+      {
+        id: 'tark-kayak',
+        name: 'Backwater Kayaking',
+        category: 'water',
+        sceneType: 'kayak',
+        durationHours: 2,
+        difficulty: 'easy',
+        pricePerPerson: 1000,
+        description: 'Paddle the calm Karli backwaters through mangrove channels.',
+        coordinates: [73.4833, 16.0333],
+        reviews: [
+          { author: 'Smita K.', rating: 5, text: 'The mangroves are magical. So quiet and green.' },
+          { author: 'Darius N.', rating: 4, text: 'Perfect for beginners. The backwater channels are beautiful.' },
+        ],
+      },
+      {
+        id: 'tark-boat',
+        name: 'Dolphin Spotting Boat',
+        category: 'water',
+        sceneType: 'boat',
+        durationHours: 2,
+        difficulty: 'easy',
+        pricePerPerson: 1200,
+        description: 'A morning boat trip to spot wild dolphins off the Tarkarli shore.',
+        coordinates: [73.4833, 16.0333],
+        reviews: [
+          { author: 'Anisha B.', rating: 5, text: 'A pod of dolphins swam alongside the boat. Kids were ecstatic!' },
+          { author: 'Ram D.', rating: 5, text: 'Guarantee dolphin sightings in season. Never disappoints.' },
+        ],
+      },
+      {
+        id: 'tark-camp',
+        name: 'Beach Bonfire Camping',
+        category: 'camping',
+        sceneType: 'camp',
+        durationHours: 14,
+        difficulty: 'easy',
+        pricePerPerson: 2000,
+        description: 'Beachfront tents, a bonfire and a sky full of stars by the Arabian Sea.',
+        coordinates: [73.4833, 16.0333],
+        reviews: [
+          { author: 'Maithili R.', rating: 5, text: 'Falling asleep to waves and waking up to a sunrise. Pure bliss.' },
+          { author: 'Aniket S.', rating: 5, text: 'The bonfire on the beach was perfect for our group trip.' },
+        ],
+      },
+      {
+        id: 'tark-fort',
+        name: 'Sindhudurg Sea-Fort Tour',
+        category: 'trekking',
+        sceneType: 'fortwalk',
+        durationHours: 3,
+        difficulty: 'easy',
+        pricePerPerson: 1300,
+        description: 'Boat across to Shivaji\'s island sea-fort and walk its ancient ramparts.',
+        coordinates: [73.4833, 16.0333],
+        reviews: [
+          { author: 'Padma V.', rating: 5, text: 'Sindhudurg is a masterpiece of Maratha engineering. Stunning.' },
+          { author: 'Naveen K.', rating: 4, text: 'Very photogenic fort. The boat ride is part of the fun.' },
+        ],
+      },
+      {
+        id: 'tark-cycle',
+        name: 'Coastal Village Cycling',
+        category: 'trekking',
+        sceneType: 'cycle',
+        durationHours: 2.5,
+        difficulty: 'easy',
+        pricePerPerson: 950,
+        description: 'Ride palm-lined lanes between Malvan fishing villages and quiet beaches.',
+        coordinates: [73.4833, 16.0333],
+        reviews: [
+          { author: 'Swapna R.', rating: 4, text: 'The coastal roads are gorgeous. Fish market stop was a highlight.' },
+          { author: 'Farida M.', rating: 4, text: 'Charming villages, fresh sea breeze. Loved it.' },
+        ],
+      },
+      {
+        id: 'tark-kolad',
+        name: 'Kolad River Rafting',
+        category: 'water',
+        sceneType: 'raft',
+        durationHours: 3,
+        difficulty: 'moderate',
+        pricePerPerson: 1800,
+        description: 'White-water rafting on the Kundalika river at Kolad — Maharashtra\'s top rafting spot.',
+        coordinates: [73.27, 18.41],
+        reviews: [
+          { author: 'Rohan V.', rating: 5, text: 'Kolad is the best rafting in Maharashtra. Rapid after rapid!' },
+          { author: 'Akshata M.', rating: 5, text: 'Grade III rapids that get your heart pumping. Safety is top-notch.' },
+        ],
+      },
+      {
+        id: 'tark-alibaug',
+        name: 'Alibaug Sea Sports',
+        category: 'water',
+        sceneType: 'kayak',
+        durationHours: 3,
+        difficulty: 'easy',
+        pricePerPerson: 2200,
+        description: 'Jet ski, banana boat, parasailing and water sports near Mumbai at Alibaug beach.',
+        coordinates: [72.8722, 18.6414],
+        reviews: [
+          { author: 'Nidhi P.', rating: 5, text: 'Perfect weekend from Mumbai. Jet skiing was a blast!' },
+          { author: 'Sachin R.', rating: 4, text: 'Great variety of water sports, very well organized.' },
+        ],
+      },
+      {
+        id: 'tark-diveagar',
+        name: 'Diveagar Beach Retreat',
+        category: 'camping',
+        sceneType: 'camp',
+        durationHours: 16,
+        difficulty: 'easy',
+        pricePerPerson: 2100,
+        description: 'Unspoilt Konkan beach camping at Diveagar — clean sands, coconut groves.',
+        coordinates: [72.991, 18.176],
+        reviews: [
+          { author: 'Leena S.', rating: 5, text: 'Diveagar is a hidden gem. Far fewer tourists than Alibaug.' },
+          { author: 'Pratik N.', rating: 5, text: 'Pristine beach, beautiful sunset, excellent seafood nearby.' },
+        ],
+      },
+      {
+        id: 'tark-mandwa',
+        name: 'Mandwa Beach Water Sports',
+        category: 'water',
+        sceneType: 'boat',
+        durationHours: 2.5,
+        difficulty: 'easy',
+        pricePerPerson: 1700,
+        description: 'Water sports and beach fun at Mandwa — a quick ferry from Mumbai\'s Gateway.',
+        coordinates: [72.882, 18.795],
+        reviews: [
+          { author: 'Naina B.', rating: 4, text: 'So convenient from Mumbai. Ferry + beach in half a day!' },
+          { author: 'Tarun K.', rating: 4, text: 'Great for a quick escape. Water is clean and activities varied.' },
+        ],
+      },
     ],
     operators: [
       { id: 'op-deepblue', name: 'DeepBlue Tarkarli', rating: 4.7, verified: true, since: 2015 },
@@ -270,9 +1016,6 @@ export const CATEGORY_LABELS: Record<ActivityCategory, string> = {
   wildlife: 'Wildlife',
 };
 
-// A representative photo per activity scene type. Reuses Unsplash IDs (broken
-// ones fall back to a CSS gradient via onError in the UI). Keeps each activity
-// visually distinct without hand-tagging all 50+ entries.
 const SCENE_PHOTO: Record<ActivitySceneType, string> = {
   trek: '1551632811-561732d1e306',
   sunrise: '1469474968028-56623f02e42e',
@@ -294,12 +1037,10 @@ const SCENE_PHOTO: Record<ActivitySceneType, string> = {
   safari: '1516426122078-c23e76319801',
 };
 
-/** Photo URL for an activity, sized for thumbnails by default. */
 export function activityImage(sceneType: ActivitySceneType, w = 800): string {
   return `https://images.unsplash.com/photo-${SCENE_PHOTO[sceneType]}?auto=format&fit=crop&w=${w}&q=80`;
 }
 
-/** A flat, de-duplicated showcase list: one card per scene type with a sample. */
 export const ACTIVITY_SHOWCASE = (() => {
   const seen = new Set<ActivitySceneType>();
   const out: { activity: Activity; destination: Destination }[] = [];

@@ -16,12 +16,31 @@ export interface Booking {
   createdAt: number;
 }
 
+/** A trip the user has saved (not yet paid) with a chosen date range. */
+export interface PlannedTrip {
+  id: string;
+  destinationSlug: string;
+  destinationName: string;
+  activityId: string;
+  activityName: string;
+  image: string;
+  dateFrom: string; // YYYY-MM-DD
+  dateTo: string;   // YYYY-MM-DD (== dateFrom for single-day)
+  people: number;
+  total: number;
+  createdAt: number;
+}
+
 interface PlatformState {
   saved: string[]; // destination slugs
+  plannedTrips: PlannedTrip[];
   bookings: Booking[];
   compare: string[]; // destination slugs queued for comparison
   toggleSaved: (slug: string) => void;
   isSaved: (slug: string) => boolean;
+  addPlannedTrip: (t: Omit<PlannedTrip, 'id' | 'createdAt'>) => PlannedTrip;
+  removePlannedTrip: (id: string) => void;
+  isActivityPlanned: (activityId: string) => boolean;
   toggleCompare: (slug: string) => void;
   isComparing: (slug: string) => boolean;
   clearCompare: () => void;
@@ -38,6 +57,7 @@ export const usePlatformStore = create<PlatformState>()(
   persist(
     (set, get) => ({
       saved: [],
+      plannedTrips: [],
       bookings: [],
       compare: [],
       toggleSaved: (slug) => {
@@ -48,6 +68,26 @@ export const usePlatformStore = create<PlatformState>()(
         toast(wasSaved ? 'Removed from saved trips' : 'Saved to your trips ♥', 'success');
       },
       isSaved: (slug) => get().saved.includes(slug),
+      addPlannedTrip: (t) => {
+        const trip: PlannedTrip = { ...t, id: crypto.randomUUID(), createdAt: Date.now() };
+        set((s) => ({
+          plannedTrips: [trip, ...s.plannedTrips],
+          // keep the destination flagged as saved for the heart/Regions UI
+          saved: s.saved.includes(t.destinationSlug) ? s.saved : [...s.saved, t.destinationSlug],
+        }));
+        const days = Math.round(
+          (new Date(t.dateTo).getTime() - new Date(t.dateFrom).getTime()) / 86_400_000,
+        ) + 1;
+        toast(
+          days > 1 ? `Saved ${t.activityName} for ${days} days ♥` : `Saved ${t.activityName} ♥`,
+          'success',
+        );
+        return trip;
+      },
+      removePlannedTrip: (id) =>
+        set((s) => ({ plannedTrips: s.plannedTrips.filter((t) => t.id !== id) })),
+      isActivityPlanned: (activityId) =>
+        get().plannedTrips.some((t) => t.activityId === activityId),
       toggleCompare: (slug) => {
         const current = get().compare;
         if (current.includes(slug)) {

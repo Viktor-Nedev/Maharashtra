@@ -29,19 +29,24 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   async signIn(email, password) {
-    if (!supabase) return 'Demo mode: Supabase not configured.';
+    if (!supabase) return 'Demo mode: Supabase not configured. Add VITE_SUPABASE_ANON_KEY to .env';
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return error?.message ?? null;
   },
 
   async signUp(email, password, name) {
-    if (!supabase) return 'Demo mode: Supabase not configured.';
-    const { error } = await supabase.auth.signUp({
+    if (!supabase) return 'Demo mode: Supabase not configured. Add VITE_SUPABASE_ANON_KEY to .env';
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { name } },
     });
-    return error?.message ?? null;
+    if (error) return error.message;
+    // Create profile row after successful sign-up
+    if (data.user) {
+      await supabase.from('profiles').upsert({ id: data.user.id, name }).select();
+    }
+    return null;
   },
 
   async signOut() {

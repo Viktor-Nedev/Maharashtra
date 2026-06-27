@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { getDestinationBySlug } from '@/data/destinations';
+import { getDestinationBySlug, activityImage } from '@/data/destinations';
 import { usePlatformStore } from '@/lib/store';
-import { ActivityScene } from '@/experience/activities/ActivityScene';
 
 const STRIPE_PK = import.meta.env.VITE_STRIPE_PK as string | undefined;
 const stripePromise = STRIPE_PK ? loadStripe(STRIPE_PK) : null;
@@ -62,14 +61,15 @@ function PayForm({ total, onSuccess }: PayFormProps) {
 // ---------------------------------------------------------------------------
 export default function Booking() {
   const { slug, activityId } = useParams<{ slug: string; activityId: string }>();
+  const [searchParams] = useSearchParams();
   const addBooking = usePlatformStore((s) => s.addBooking);
 
   const dest = slug ? getDestinationBySlug(slug) : undefined;
   const activity = dest?.activities.find((a) => a.id === activityId);
 
   const today = new Date().toISOString().slice(0, 10);
-  const [date, setDate] = useState(today);
-  const [people, setPeople] = useState(2);
+  const [date, setDate] = useState(() => searchParams.get('date') ?? today);
+  const [people, setPeople] = useState(() => Number(searchParams.get('people') ?? '2'));
   const [step, setStep] = useState<'form' | 'pay' | 'done'>('form');
   const [clientSecret, setClientSecret] = useState('');
   const [fetchingSecret, setFetchingSecret] = useState(false);
@@ -156,7 +156,13 @@ export default function Booking() {
       <Link to={`/destination/${dest.slug}`} className="booking__back">← {dest.name}</Link>
       <div className="booking__grid">
         <div className="booking__summary">
-          <ActivityScene sceneType={activity.sceneType} />
+          <div className="booking__photo">
+            <img
+              src={activity.image ?? activityImage(activity.sceneType)}
+              alt={activity.name}
+              onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+            />
+          </div>
           <div className="booking__summary-text">
             <span className="eyebrow">{dest.region}</span>
             <h1>{activity.name}</h1>

@@ -2,17 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useMotionValue, useSpring, animate } from 'framer-motion';
 import {
-  ACTIVITY_SHOWCASE,
   CATEGORY_LABELS,
   DESTINATIONS,
   activityImage,
   type ActivityCategory,
 } from '@/data/destinations';
-import { WorldMap } from '@/components/WorldMap';
+import { ActivityMap, type ActivityWithDest, CATEGORY_COLORS } from '@/components/ActivityMap';
+import { ActivityDetailPanel } from '@/components/ActivityDetailPanel';
+import { SideParticles } from '@/components/SideParticles';
 import { Tilt } from '@/components/Tilt';
 import { ExploreHero3D } from '@/components/ExploreHero3D';
 import { ImageWithSkeleton } from '@/components/ImageWithSkeleton';
-import { TerrainPreview } from '@/experience/TerrainPreview';
 import { usePlatformStore } from '@/lib/store';
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as ActivityCategory[];
@@ -47,45 +47,53 @@ const DURATION_LABELS: Record<DurationFilter, string> = {
   full: 'Full day',
 };
 
+const matchesDuration = (hours: number, f: DurationFilter) => {
+  if (f === 'any') return true;
+  if (f === 'short') return hours < 4;
+  if (f === 'half') return hours >= 4 && hours <= 8;
+  return hours > 8;
+};
+
 export default function Explore() {
   const [filter, setFilter] = useState<ActivityCategory | 'all'>('all');
   const [query, setQuery] = useState('');
   const [priceMax, setPriceMax] = useState(15000);
   const [durationFilter, setDurationFilter] = useState<DurationFilter>('any');
   const [flippedId, setFlippedId] = useState<string | null>(null);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<ActivityWithDest | null>(null);
   const { toggleSaved, isSaved, toggleCompare, isComparing } = usePlatformStore();
 
-  const destinations = useMemo(() => {
-    return DESTINATIONS.filter((d) => {
-      const matchesCategory =
-        filter === 'all' || d.activities.some((a) => a.category === filter);
-      const q = query.trim().toLowerCase();
+  // All bookable activities that have a map pin, flattened with their region.
+  const allActivitiesWithDest = useMemo<ActivityWithDest[]>(
+    () =>
+      DESTINATIONS.flatMap((d) =>
+        d.activities
+          .filter((a) => a.coordinates)
+          .map((a) => ({ ...a, destination: d })),
+      ),
+    [],
+  );
+
+  // One filter pipeline drives BOTH the Signature experiences grid and the map.
+  const filteredActivities = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return allActivitiesWithDest.filter((a) => {
+      const matchesCategory = filter === 'all' || a.category === filter;
       const matchesQuery =
         !q ||
-        d.name.toLowerCase().includes(q) ||
-        d.region.toLowerCase().includes(q) ||
-        d.activities.some((a) => a.name.toLowerCase().includes(q));
-      const matchesPrice = d.activities.some((a) => a.pricePerPerson <= priceMax);
-      const matchesDuration =
-        durationFilter === 'any' ||
-        d.activities.some((a) => {
-          if (durationFilter === 'short') return a.durationHours < 4;
-          if (durationFilter === 'half') return a.durationHours >= 4 && a.durationHours <= 8;
-          if (durationFilter === 'full') return a.durationHours > 8;
-          return true;
-        });
-      return matchesCategory && matchesQuery && matchesPrice && matchesDuration;
+        a.name.toLowerCase().includes(q) ||
+        a.destination.name.toLowerCase().includes(q) ||
+        a.destination.region.toLowerCase().includes(q);
+      const matchesPrice = a.pricePerPerson <= priceMax;
+      return matchesCategory && matchesQuery && matchesPrice && matchesDuration(a.durationHours, durationFilter);
     });
-  }, [filter, query, priceMax, durationFilter]);
+  }, [allActivitiesWithDest, filter, query, priceMax, durationFilter]);
 
-  const showcase = useMemo(
-    () =>
-      ACTIVITY_SHOWCASE.filter(
-        ({ activity }) => filter === 'all' || activity.category === filter,
-      ),
-    [filter],
-  );
+  // Regions that still have at least one matching activity.
+  const destinations = useMemo(() => {
+    const slugs = new Set(filteredActivities.map((a) => a.destination.slug));
+    return DESTINATIONS.filter((d) => slugs.has(d.slug));
+  }, [filteredActivities]);
 
   return (
     <div className="explore">
@@ -96,6 +104,10 @@ export default function Explore() {
         <span className="orb orb--3" />
         <span className="explore__grid-lines" />
       </div>
+
+      {/* Floating particles on both edges */}
+      <SideParticles side="left" />
+      <SideParticles side="right" />
 
       {/* Hero: copy + live 3D globe */}
       <section className="explore__hero explore__hero--split">
@@ -109,10 +121,10 @@ export default function Explore() {
           <h1>
             Find your next <span className="grad-text">adventure</span>
           </h1>
-          <p>Six signature regions. Eighteen kinds of experience across Maharashtra — trek, dive, glide, ride.</p>
+          <p>Six signature regions. Dozens of experiences across Maharashtra — trek, dive, glide, ride.</p>
           <div className="explore__hero-stats">
             <div><strong><CountUp to={DESTINATIONS.length} /></strong><span>regions</span></div>
-            <div><strong><CountUp to={DESTINATIONS.reduce((n, d) => n + d.activities.length, 0)} /></strong><span>activities</span></div>
+            <div><strong><CountUp to={allActivitiesWithDest.length} /></strong><span>activities</span></div>
             <div><strong><CountUp to={4.8} suffix="★" /></strong><span>avg rating</span></div>
           </div>
           <div className="explore__hero-cta">
@@ -179,54 +191,92 @@ export default function Explore() {
             ))}
           </div>
         </div>
+        {(filter !== 'all' || query || durationFilter !== 'any' || priceMax < 15000) && (
+          <button
+            className="explore__adv-reset"
+            onClick={() => { setFilter('all'); setQuery(''); setPriceMax(15000); setDurationFilter('any'); }}
+          >
+            Reset filters ✕
+          </button>
+        )}
       </div>
 
-      {/* Activities showcase with photos + 3D tilt */}
+      {/* Activities showcase — every pin activity, click opens the detail panel */}
       <section className="experiences" id="experiences">
-        <h2 className="section-title">Signature experiences</h2>
+        <div className="experiences__head">
+          <h2 className="section-title">Signature experiences</h2>
+          <span className="experiences__count">{filteredActivities.length} found</span>
+        </div>
         <div className="exp-grid">
-          {showcase.map(({ activity, destination }, i) => (
+          {filteredActivities.map((activity, i) => (
             <motion.div
-              key={activity.id}
+              key={`${activity.destination.slug}-${activity.id}`}
               initial={{ opacity: 0, y: 28 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-10%' }}
               transition={{ delay: (i % 4) * 0.05, duration: 0.5 }}
             >
               <Tilt className="exp-card">
-                <Link to={`/book/${destination.slug}/${activity.id}`} className="exp-card__inner">
+                <button
+                  type="button"
+                  className="exp-card__inner"
+                  onClick={() => setSelectedActivity(activity)}
+                >
                   <div className="exp-card__media">
-                    <ImageWithSkeleton src={activityImage(activity.sceneType)} alt={activity.name} onImgError={hideBroken} />
-                    <span className="exp-card__cat">{CATEGORY_LABELS[activity.category]}</span>
+                    <ImageWithSkeleton
+                      src={activity.image ?? activityImage(activity.sceneType)}
+                      alt={activity.name}
+                      onImgError={hideBroken}
+                    />
+                    <span
+                      className="exp-card__cat"
+                      style={{ background: CATEGORY_COLORS[activity.category] }}
+                    >
+                      {CATEGORY_LABELS[activity.category]}
+                    </span>
                     <span className={`exp-card__diff difficulty--${activity.difficulty}`}>{activity.difficulty}</span>
                   </div>
                   <div className="exp-card__body">
                     <h3>{activity.name}</h3>
-                    <p>{destination.name} · {activity.durationHours}h</p>
+                    <p>{activity.destination.name} · {activity.durationHours}h</p>
                     <div className="exp-card__foot">
                       <span className="price">₹{activity.pricePerPerson.toLocaleString('en-IN')}</span>
-                      <span className="exp-card__go">Book →</span>
+                      <span className="exp-card__go">View →</span>
                     </div>
                   </div>
-                </Link>
+                </button>
               </Tilt>
             </motion.div>
           ))}
+          {filteredActivities.length === 0 && (
+            <p className="empty">No experiences match your filters — try widening them.</p>
+          )}
         </div>
       </section>
 
-      {/* Map */}
+      {/* Activity map with pins (same filtered set) */}
       <section className="explore__map">
-        <h2 className="section-title">Explore the map</h2>
-        <WorldMap />
+        <h2 className="section-title">Explore activities on the map</h2>
+        <p className="explore__map-hint">Click any pin to see details, reviews and book</p>
+        <ActivityMap
+          activities={filteredActivities}
+          onSelect={(a) => setSelectedActivity(a)}
+          className="explore__activity-map"
+        />
       </section>
+
+      {/* Shared detail panel */}
+      <ActivityDetailPanel
+        activity={selectedActivity}
+        onClose={() => setSelectedActivity(null)}
+      />
 
       {/* Destination cards */}
       <section className="card-grid-section">
         <h2 className="section-title">Regions</h2>
         <div className="card-grid">
           {destinations.map((d, i) => {
-            const active = flippedId === d.id || hoveredId === d.id;
+            const cats = Array.from(new Set(d.activities.map((a) => a.category)));
             return (
             <motion.article
               key={d.id}
@@ -236,8 +286,6 @@ export default function Explore() {
               viewport={{ once: true, margin: '-8%' }}
               transition={{ delay: (i % 3) * 0.06, duration: 0.5 }}
               onClick={() => setFlippedId(flippedId === d.id ? null : d.id)}
-              onMouseEnter={() => setHoveredId(d.id)}
-              onMouseLeave={() => setHoveredId((h) => (h === d.id ? null : h))}
             >
               <div className="dest-card__inner">
                 {/* Front face */}
@@ -260,18 +308,41 @@ export default function Explore() {
                   </div>
                 </div>
 
-                {/* Back face — live procedural 3D terrain */}
+                {/* Back face — stat banner (no 3D) */}
                 <div className="dest-card__face dest-card__back">
-                  <div className="dest-card__terrain">
-                    {active && <TerrainPreview slug={d.slug} />}
-                    <span className="dest-card__terrain-label">3D terrain</span>
+                  <div
+                    className="dest-card__back-hero"
+                    style={{ background: `linear-gradient(150deg, ${d.heroColor}, #0c0e13)` }}
+                  >
+                    <span className="dest-card__back-tag">{d.region}</span>
+                    <div className="dest-card__back-stats">
+                      <div>
+                        <span className="num">{d.elevation}m</span>
+                        <span className="lbl">peak</span>
+                      </div>
+                      <div>
+                        <span className="num">{d.activities.length}</span>
+                        <span className="lbl">activities</span>
+                      </div>
+                      <div>
+                        <span className="num">{d.bestSeason}</span>
+                        <span className="lbl">best season</span>
+                      </div>
+                    </div>
+                    <div className="dest-card__back-cats">
+                      {cats.map((c) => (
+                        <span key={c} className="dest-card__cat-dot" title={CATEGORY_LABELS[c]}>
+                          <i style={{ background: CATEGORY_COLORS[c] }} />
+                          {CATEGORY_LABELS[c]}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                   <div className="dest-card__back-body">
                     <div>
-                      <span className="eyebrow">{d.region}</span>
                       <h3>{d.name}</h3>
+                      <p className="dest-card__back-desc">{d.tagline}</p>
                       <div className="dest-card__meta">
-                        <span>{d.activities.length} activities</span>
                         <span>from ₹{Math.min(...d.activities.map((a) => a.pricePerPerson)).toLocaleString('en-IN')}</span>
                       </div>
                     </div>
