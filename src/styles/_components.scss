@@ -649,14 +649,16 @@
   &__cat {
     position: absolute;
     top: 0.7rem; left: 0.7rem;
-    padding: 0.25rem 0.6rem;
+    padding: 0.28rem 0.65rem;
     border-radius: 100px;
-    background: rgba(5, 7, 13, 0.7);
-    backdrop-filter: blur(6px);
+    /* background is set inline per category colour */
     font-size: 0.66rem;
-    letter-spacing: 0.12em;
+    font-weight: 700;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--accent-soft);
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   }
   &__diff {
     position: absolute;
@@ -1820,35 +1822,42 @@
 }
 
 .cursor-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  margin-top: -3.5px;
   background: var(--accent);
-  box-shadow: 0 0 12px var(--accent-glow);
+  box-shadow: 0 0 10px var(--accent-glow), 0 0 0 2px rgba(255, 255, 255, 0.85);
 }
 
+/* The ring uses mix-blend-mode: difference so a white outline inverts whatever's
+   beneath it — it stays crisp on photos, the map, light and dark themes alike. */
 .cursor-ring {
-  width: 38px;
-  height: 38px;
-  margin-left: -19px;
-  margin-top: -19px;
-  border: 1.5px solid var(--accent);
-  opacity: 0.6;
-  transition: width 0.22s var(--ease), height 0.22s var(--ease),
-    margin 0.22s var(--ease), background 0.22s var(--ease), opacity 0.22s var(--ease);
+  width: 34px;
+  height: 34px;
+  margin-left: -17px;
+  margin-top: -17px;
+  border: 1.5px solid #fff;
+  mix-blend-mode: difference;
+  opacity: 0.9;
+  transition: width 0.25s var(--ease), height 0.25s var(--ease),
+    margin 0.25s var(--ease), background 0.25s var(--ease),
+    border-radius 0.25s var(--ease), opacity 0.2s var(--ease);
 
   &.is-hover {
-    width: 60px;
-    height: 60px;
-    margin-left: -30px;
-    margin-top: -30px;
-    background: var(--accent-glow);
-    opacity: 0.9;
+    width: 56px;
+    height: 56px;
+    margin-left: -28px;
+    margin-top: -28px;
+    background: #fff;
+    opacity: 1;
   }
   &.is-down {
-    width: 26px;
-    height: 26px;
-    margin-left: -13px;
-    margin-top: -13px;
+    width: 22px;
+    height: 22px;
+    margin-left: -11px;
+    margin-top: -11px;
+    background: #fff;
   }
 }
 

@@ -1,18 +1,38 @@
 import { Suspense, useMemo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { Airplane } from '@/experience/Airplane';
 import { useLowPower } from '@/hooks/useMediaQuery';
 
+const EARTH_URL = '/3d_models/earth.glb';
+
 function Globe() {
   const group = useRef<THREE.Group>(null);
+  const { scene } = useGLTF(EARTH_URL);
+
+  // Normalise the earth model to a ~4-unit diameter, centred at the origin.
+  const earth = useMemo(() => {
+    const s = scene.clone(true);
+    const box = new THREE.Box3().setFromObject(s);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+    const maxDim = Math.max(size.x, size.y, size.z) || 1;
+    const k = 4 / maxDim;
+    s.scale.setScalar(k);
+    s.position.set(-center.x * k, -center.y * k, -center.z * k);
+    return s;
+  }, [scene]);
+
   useFrame((_, dt) => {
-    if (group.current) group.current.rotation.y += dt * 0.18;
+    if (group.current) group.current.rotation.y += dt * 0.14;
   });
 
-  // A few "destination" pins scattered on the sphere surface.
+  // A few glowing "destination" pins floating just above the surface.
   const pins = useMemo(() => {
-    const r = 2.02;
+    const r = 2.12;
     const pts: THREE.Vector3[] = [];
     for (let i = 0; i < 7; i++) {
       const phi = Math.acos(1 - (2 * (i + 0.5)) / 7);
@@ -28,26 +48,18 @@ function Globe() {
 
   return (
     <group ref={group} rotation={[0.3, 0, 0.1]}>
-      {/* solid core */}
-      <mesh>
-        <icosahedronGeometry args={[2, 4]} />
-        <meshStandardMaterial color="#16314f" metalness={0.4} roughness={0.6} />
-      </mesh>
-      {/* wireframe shell */}
-      <mesh scale={1.012}>
-        <icosahedronGeometry args={[2, 3]} />
-        <meshBasicMaterial color="#5e7bff" wireframe transparent opacity={0.35} />
-      </mesh>
-      {/* glowing pins */}
+      <primitive object={earth} />
       {pins.map((p, i) => (
         <mesh key={i} position={p}>
-          <sphereGeometry args={[0.07, 12, 12]} />
+          <sphereGeometry args={[0.06, 12, 12]} />
           <meshBasicMaterial color={i % 2 ? '#ff7a3d' : '#ffb066'} toneMapped={false} />
         </mesh>
       ))}
     </group>
   );
 }
+
+useGLTF.preload(EARTH_URL);
 
 function OrbitingPlane() {
   const pivot = useRef<THREE.Group>(null);

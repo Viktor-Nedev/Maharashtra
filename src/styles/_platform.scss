@@ -733,6 +733,44 @@
 }
 
 /* ---- Booking -------------------------------------------------------------- */
+.demo-pay {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  &__badge {
+    align-self: flex-start;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-soft);
+    background: rgba(255, 122, 61, 0.12);
+    border: 1px solid var(--line-strong);
+    padding: 0.25rem 0.6rem;
+    border-radius: 100px;
+  }
+  &__row { display: flex; gap: 0.8rem; }
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    input {
+      background: var(--bg);
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius-sm);
+      padding: 0.7rem 0.9rem;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+      &:focus { outline: none; border-color: var(--accent); }
+    }
+  }
+}
+
 .booking__loading {
   display: flex;
   flex-direction: column;
@@ -919,41 +957,47 @@
 .profile__calendar { margin-bottom: 2.5rem; }
 .profile__cal-wrap {
   display: grid;
-  grid-template-columns: minmax(280px, 360px) 1fr;
-  gap: 1.6rem;
+  grid-template-columns: minmax(380px, 500px) 1fr;
+  gap: 2rem;
   align-items: start;
-  @media (max-width: 760px) { grid-template-columns: 1fr; }
+  @media (max-width: 880px) { grid-template-columns: 1fr; }
 }
 
 .trip-cal {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 1rem 1.1rem;
+  border-radius: var(--radius-lg);
+  padding: 1.6rem 1.7rem;
+  box-shadow: var(--shadow);
 
   &__head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.7rem;
-    span { font-weight: 700; }
+    margin-bottom: 1.1rem;
+    span { font-weight: 800; font-size: 1.15rem; }
     button {
-      background: none; border: none; color: var(--text);
-      cursor: pointer; font-size: 1.3rem; line-height: 1; padding: 0 0.4rem;
-      &:hover { color: var(--accent); }
+      background: none; border: 1px solid var(--line-strong); border-radius: 50%;
+      width: 38px; height: 38px; color: var(--text);
+      cursor: pointer; font-size: 1.4rem; line-height: 1;
+      display: grid; place-items: center;
+      transition: all 0.2s var(--ease);
+      &:hover { color: var(--accent); border-color: var(--accent); }
     }
   }
   &__grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 3px;
+    gap: 6px;
   }
   &__dow {
     text-align: center;
-    font-size: 0.66rem;
-    font-weight: 600;
+    font-size: 0.78rem;
+    font-weight: 700;
     color: var(--text-faint);
-    padding-bottom: 4px;
+    padding-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
   &__day {
     position: relative;
@@ -961,8 +1005,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8rem;
-    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 10px;
     color: var(--text);
     &.is-planned { background: rgba(255, 122, 61, 0.22); color: var(--accent-soft); font-weight: 700; }
     &.is-booked { background: var(--accent); color: #1a0d05; font-weight: 800; }
@@ -1322,6 +1367,20 @@
   }
   &:hover &__label {
     opacity: 1;
+  }
+
+  /* Image-based markers (public/markers/<category>.png) */
+  &__img {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+    display: block;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
+    transition: transform 0.18s var(--ease);
+    transform-origin: bottom center;
+  }
+  &--img:hover .activity-pin__img {
+    transform: scale(1.18) translateY(-2px);
   }
 }
 
@@ -1947,6 +2006,76 @@
     &:focus { outline: none; border-color: var(--accent); }
   }
   &__date-sep { color: var(--text-faint); }
+
+  /* Topbar right cluster: date popover + export buttons */
+  &__bar-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  &__datebox { position: relative; }
+  &__date-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 100px;
+    padding: 0.5rem 1rem;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.2s var(--ease);
+    &:hover { border-color: var(--accent); }
+  }
+  &__date-ico {
+    width: 14px; height: 14px;
+    border: 1.6px solid currentColor;
+    border-radius: 3px;
+    position: relative;
+    flex: 0 0 auto;
+    &::before { content: ''; position: absolute; top: -4px; left: 2px; right: 2px; height: 3px; border-left: 1.6px solid currentColor; border-right: 1.6px solid currentColor; }
+  }
+  &__cal-pop {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 30;
+    width: 300px;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 0.8rem;
+  }
+  &__cal-clear {
+    width: 100%;
+    margin-top: 0.6rem;
+    background: none;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.45rem;
+    color: var(--text-dim);
+    font-size: 0.78rem;
+    cursor: pointer;
+    &:hover { color: var(--accent); border-color: var(--accent); }
+  }
+  &__export {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  &__export-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    font-weight: 700;
+    margin-right: 0.1rem;
+  }
 
   &__grid {
     display: grid;

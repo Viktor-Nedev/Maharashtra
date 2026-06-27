@@ -58,6 +58,44 @@ function PayForm({ total, onSuccess }: PayFormProps) {
   );
 }
 
+// --- Demo checkout (shown when Stripe isn't configured) ---------------------
+function DemoPayForm({ total, onSuccess }: { total: number; onSuccess: () => void }) {
+  const [card, setCard] = useState('4242 4242 4242 4242');
+  const [exp, setExp] = useState('12 / 34');
+  const [cvc, setCvc] = useState('123');
+  const [paying, setPaying] = useState(false);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPaying(true);
+    // Simulate a payment round-trip, then confirm the booking.
+    setTimeout(onSuccess, 1300);
+  };
+
+  return (
+    <form className="demo-pay" onSubmit={submit}>
+      <span className="demo-pay__badge">Demo checkout · no real charge</span>
+      <label className="demo-pay__field">
+        Card number
+        <input value={card} onChange={(e) => setCard(e.target.value)} inputMode="numeric" autoComplete="cc-number" />
+      </label>
+      <div className="demo-pay__row">
+        <label className="demo-pay__field">
+          Expiry
+          <input value={exp} onChange={(e) => setExp(e.target.value)} autoComplete="cc-exp" />
+        </label>
+        <label className="demo-pay__field">
+          CVC
+          <input value={cvc} onChange={(e) => setCvc(e.target.value)} inputMode="numeric" autoComplete="cc-csc" />
+        </label>
+      </div>
+      <button type="submit" className="btn btn--primary btn--lg btn--block" disabled={paying} style={{ marginTop: '1.2rem' }}>
+        {paying ? 'Processing…' : `Pay ₹${total.toLocaleString('en-IN')}`}
+      </button>
+    </form>
+  );
+}
+
 // ---------------------------------------------------------------------------
 export default function Booking() {
   const { slug, activityId } = useParams<{ slug: string; activityId: string }>();
@@ -86,8 +124,8 @@ export default function Booking() {
 
   const handleProceedToPayment = async () => {
     if (!stripePromise) {
-      // No Stripe configured — demo mode confirms instantly
-      confirmBooking();
+      // No Stripe configured — show the demo checkout page (not an instant skip).
+      setStep('pay');
       return;
     }
     setFetchingSecret(true);
@@ -98,15 +136,12 @@ export default function Booking() {
         body: JSON.stringify({ amount: total }),
       });
       const data = await res.json() as { clientSecret?: string; error?: string };
-      if (data.clientSecret) {
-        setClientSecret(data.clientSecret);
-        setStep('pay');
-      } else {
-        // API unavailable (local dev without secret key) → demo confirm
-        confirmBooking();
-      }
+      // Either way we land on the pay step: real Stripe form if we got a
+      // clientSecret, otherwise the demo checkout form.
+      if (data.clientSecret) setClientSecret(data.clientSecret);
+      setStep('pay');
     } catch {
-      confirmBooking();
+      setStep('pay');
     } finally {
       setFetchingSecret(false);
     }
@@ -228,7 +263,7 @@ export default function Booking() {
           </form>
         )}
 
-        {step === 'pay' && stripePromise && clientSecret && (
+        {step === 'pay' && (
           <div className="booking__form">
             <h2>Payment</h2>
             <div className="booking__total" style={{ marginBottom: '1.4rem' }}>
@@ -237,15 +272,23 @@ export default function Booking() {
                 <strong>₹{total.toLocaleString('en-IN')}</strong>
               </div>
             </div>
-            <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#ff7a3d' } } }}>
-              <PayForm total={total} onSuccess={confirmBooking} />
-            </Elements>
+
+            {stripePromise && clientSecret ? (
+              <>
+                <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#ff7a3d' } } }}>
+                  <PayForm total={total} onSuccess={confirmBooking} />
+                </Elements>
+                <p className="booking__note">
+                  Test card: 4242 4242 4242 4242 · any future date · any CVC
+                </p>
+              </>
+            ) : (
+              <DemoPayForm total={total} onSuccess={confirmBooking} />
+            )}
+
             <button className="link-btn" style={{ marginTop: '1rem', display: 'block' }} onClick={() => setStep('form')}>
               ← Back
             </button>
-            <p className="booking__note">
-              Test card: 4242 4242 4242 4242 · any future date · any CVC
-            </p>
           </div>
         )}
       </div>

@@ -3,8 +3,13 @@ import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { DESTINATIONS } from '@/data/destinations';
 import { usePlannerStore, usePlatformStore } from '@/lib/store';
+import { RangeCalendar } from '@/components/RangeCalendar';
+import { exportPlanPDF, exportPlanWord, exportPlanExcel, type PlanExport } from '@/lib/exportPlan';
 
 const inr = (n: number) => '₹' + n.toLocaleString('en-IN');
+
+const fmtDate = (d: string) =>
+  d ? new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
 
 const QUICK_TAGS = ['Packing', 'Food', 'Transport', 'Gear', 'Budget', 'Tickets'];
 
@@ -50,6 +55,7 @@ export default function Planner() {
   const [dateTo, setDateTo] = useState('');
   const [editingName, setEditingName] = useState(false);
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [calOpen, setCalOpen] = useState(false);
 
   const spent = useMemo(() => items.reduce((s, i) => s + i.amount, 0), [items]);
   const remaining = budgetCap - spent;
@@ -57,6 +63,21 @@ export default function Planner() {
   const over = remaining < 0;
 
   const savedDests = DESTINATIONS.filter((d) => saved.includes(d.slug));
+
+  // Trip date range — start, then end, then reset on the calendar.
+  const pickDate = (d: string) => {
+    if (!dateFrom || (dateFrom && dateTo)) { setDateFrom(d); setDateTo(''); return; }
+    if (d < dateFrom) { setDateFrom(d); return; }
+    setDateTo(d);
+    setCalOpen(false);
+  };
+
+  const planData = (): PlanExport => ({
+    tripName, dateFrom, dateTo, budgetCap, spent,
+    items: items.map((i) => ({ label: i.label, amount: i.amount })),
+    stops: stops.map((s) => ({ title: s.title, done: s.done })),
+    notes,
+  });
 
   const submitItem = () => {
     const amt = Number(amount);
@@ -99,22 +120,49 @@ export default function Planner() {
             </button>
           )}
         </div>
-        <div className="plannerv2__dates">
-          <input
-            type="date"
-            className="plannerv2__date-input"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            title="Trip start"
-          />
-          <span className="plannerv2__date-sep">→</span>
-          <input
-            type="date"
-            className="plannerv2__date-input"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            title="Trip end"
-          />
+        <div className="plannerv2__bar-right">
+          {/* Trip date range — calendar popover */}
+          <div className="plannerv2__datebox">
+            <button
+              type="button"
+              className="plannerv2__date-btn"
+              onClick={() => setCalOpen((o) => !o)}
+            >
+              <span className="plannerv2__date-ico" aria-hidden="true" />
+              {dateFrom
+                ? `${fmtDate(dateFrom)}${dateTo ? ` → ${fmtDate(dateTo)}` : ' → …'}`
+                : 'Set trip dates'}
+            </button>
+            <AnimatePresence>
+              {calOpen && (
+                <motion.div
+                  className="plannerv2__cal-pop"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.18 }}
+                >
+                  <RangeCalendar from={dateFrom} to={dateTo} onPick={pickDate} />
+                  {(dateFrom || dateTo) && (
+                    <button
+                      className="plannerv2__cal-clear"
+                      onClick={() => { setDateFrom(''); setDateTo(''); }}
+                    >
+                      Clear dates
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Export the plan */}
+          <div className="plannerv2__export">
+            <span className="plannerv2__export-label">Export</span>
+            <button className="btn btn--ghost btn--sm" onClick={() => exportPlanPDF(planData())}>PDF</button>
+            <button className="btn btn--ghost btn--sm" onClick={() => exportPlanWord(planData())}>Word</button>
+            <button className="btn btn--ghost btn--sm" onClick={() => exportPlanExcel(planData())}>Excel</button>
+          </div>
         </div>
       </div>
 

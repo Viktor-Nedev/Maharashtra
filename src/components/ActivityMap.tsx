@@ -21,6 +21,16 @@ export interface ActivityWithDest extends Activity {
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
+// Per-category pin artwork (public/markers). Note: category "water" → water_sport.png.
+const MARKER_ICONS: Record<string, string> = {
+  trekking: '/markers/trekking.png',
+  camping: '/markers/camping.png',
+  water: '/markers/water_sport.png',
+  aerial: '/markers/aerial.png',
+  climbing: '/markers/climbing.png',
+  wildlife: '/markers/wildlife.png',
+};
+
 interface Props {
   activities: ActivityWithDest[];
   onSelect: (activity: ActivityWithDest) => void;
@@ -54,7 +64,8 @@ export function ActivityMap({ activities, onSelect, className = '' }: Props) {
     });
 
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
-    map.scrollZoom.disable();
+    // Wheel/trackpad zoom enabled so users can zoom in/out on the map.
+    map.scrollZoom.enable();
 
     const markers: mapboxgl.Marker[] = [];
 
@@ -64,14 +75,14 @@ export function ActivityMap({ activities, onSelect, className = '' }: Props) {
       }
 
       withCoords.forEach((activity) => {
-        const color = CATEGORY_COLORS[activity.category] || '#ff7a3d';
+        const icon = MARKER_ICONS[activity.category] || MARKER_ICONS.trekking;
 
         const el = document.createElement('button');
-        el.className = 'activity-pin';
+        el.className = 'activity-pin activity-pin--img';
         el.setAttribute('aria-label', activity.name);
         el.setAttribute('type', 'button');
         el.innerHTML = `
-          <span class="activity-pin__dot" style="background:${color};box-shadow:0 0 0 3px ${color}40"></span>
+          <img class="activity-pin__img" src="${icon}" alt="" draggable="false" />
           <span class="activity-pin__label">${activity.name}</span>
         `;
 

@@ -2,6 +2,8 @@
 // Domain model + seed data for Maharashtra adventure tourism.
 // ---------------------------------------------------------------------------
 
+import { ACTIVITY_IMAGES } from './activityImages';
+
 export type ActivityCategory =
   | 'trekking'
   | 'camping'
@@ -997,6 +999,13 @@ export const DESTINATIONS: Destination[] = [
     ],
   },
 ];
+
+// Attach each activity's real photo (public/activity_images, keyed by id).
+for (const d of DESTINATIONS) {
+  for (const a of d.activities) {
+    if (ACTIVITY_IMAGES[a.id]) a.image = ACTIVITY_IMAGES[a.id];
+  }
+}
 
 export const ALL_ACTIVITIES: (Activity & { destination: Destination })[] =
   DESTINATIONS.flatMap((d) => d.activities.map((a) => ({ ...a, destination: d })));

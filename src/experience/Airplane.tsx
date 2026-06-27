@@ -1,73 +1,48 @@
 import { forwardRef, useMemo } from 'react';
+import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 
+const MODEL_URL = '/3d_models/toy_plane.glb';
+
 /**
- * Stylised low-poly airplane built entirely from primitives so the experience
- * runs with ZERO external assets. To swap in the real `airplane.glb`, replace
- * the meshes here with a `useGLTF('/models/airplane.glb')` scene — the rest of
- * the flight system (positioning/banking) operates on the parent group and is
- * model-agnostic.
+ * The home/explore airplane — now a real GLB model (public/3d_models/toy_plane.glb).
+ * The flight system (PlaneOverlay) drives the parent group's position/rotation,
+ * so this component only normalises the model's size + orientation. The inner
+ * group is rotated so the nose points forward (-Z); tweak ORIENT if the imported
+ * model faces a different axis.
  */
+const ORIENT: [number, number, number] = [0, Math.PI, 0];
+const TARGET_SIZE = 3.4; // world units along the longest axis (matches old plane)
+
 export const Airplane = forwardRef<THREE.Group>((_, ref) => {
-  const bodyMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#eef1f5', metalness: 0.35, roughness: 0.4 }),
-    [],
-  );
-  const accentMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#e8743b', metalness: 0.2, roughness: 0.5 }),
-    [],
-  );
-  const glassMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#0d2a3a',
-        metalness: 0.6,
-        roughness: 0.15,
-        emissive: '#173f55',
-        emissiveIntensity: 0.4,
-      }),
-    [],
-  );
+  const { scene } = useGLTF(MODEL_URL);
+
+  // Clone + normalise once: centre at origin and scale to a known size so the
+  // flight maths works regardless of the model's native units.
+  const model = useMemo(() => {
+    const s = scene.clone(true);
+    const box = new THREE.Box3().setFromObject(s);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+    const maxDim = Math.max(size.x, size.y, size.z) || 1;
+    const k = TARGET_SIZE / maxDim;
+    s.scale.setScalar(k);
+    s.position.set(-center.x * k, -center.y * k, -center.z * k);
+    s.traverse((o) => {
+      if ((o as THREE.Mesh).isMesh) {
+        o.castShadow = true;
+        o.receiveShadow = false;
+      }
+    });
+    return s;
+  }, [scene]);
 
   return (
-    // Inner group rotated so the model "nose" points down -Z (flight forward).
     <group ref={ref} dispose={null}>
-      <group rotation={[0, Math.PI, 0]} scale={1.1}>
-        {/* Fuselage — capsule laid along the Z (forward) axis so it reads as a
-            sleek body, not a vertical cylinder. */}
-        <mesh rotation={[Math.PI / 2, 0, 0]} material={bodyMat} castShadow>
-          <capsuleGeometry args={[0.46, 3.4, 8, 18]} />
-        </mesh>
-        {/* Nose cone */}
-        <mesh position={[0, 0, 2.35]} rotation={[Math.PI / 2, 0, 0]} material={accentMat} castShadow>
-          <coneGeometry args={[0.46, 1.0, 18]} />
-        </mesh>
-        {/* Cockpit glass */}
-        <mesh position={[0, 0.3, 1.25]} scale={[0.62, 0.5, 1.15]} material={glassMat}>
-          <sphereGeometry args={[0.5, 16, 16]} />
-        </mesh>
-        {/* Main wings — slight back-sweep for a jet look */}
-        <mesh position={[0, -0.08, -0.1]} rotation={[0, 0, 0]} castShadow material={bodyMat}>
-          <boxGeometry args={[7.0, 0.1, 1.2]} />
-        </mesh>
-        {/* Wing accent stripes */}
-        <mesh position={[0, -0.02, 0.4]} material={accentMat}>
-          <boxGeometry args={[7.0, 0.12, 0.16]} />
-        </mesh>
-        {/* Tail wings */}
-        <mesh position={[0, 0.04, -1.95]} castShadow material={bodyMat}>
-          <boxGeometry args={[2.6, 0.09, 0.7]} />
-        </mesh>
-        {/* Vertical stabiliser */}
-        <mesh position={[0, 0.5, -2.0]} rotation={[-0.25, 0, 0]} castShadow material={accentMat}>
-          <boxGeometry args={[0.11, 0.95, 0.7]} />
-        </mesh>
-        {/* Engine pods slung under the wings */}
-        {[-2.0, 2.0].map((x) => (
-          <mesh key={x} position={[x, -0.3, 0.15]} rotation={[Math.PI / 2, 0, 0]} material={bodyMat} castShadow>
-            <cylinderGeometry args={[0.22, 0.22, 1.1, 14]} />
-          </mesh>
-        ))}
+      <group rotation={ORIENT}>
+        <primitive object={model} />
       </group>
       {/* Navigation light — also gives the plane a faint glow for bloom. */}
       <pointLight position={[0, 0.4, -2]} color="#ff6b3d" intensity={6} distance={8} />
@@ -76,3 +51,5 @@ export const Airplane = forwardRef<THREE.Group>((_, ref) => {
 });
 
 Airplane.displayName = 'Airplane';
+
+useGLTF.preload(MODEL_URL);
