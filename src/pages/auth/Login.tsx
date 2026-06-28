@@ -89,7 +89,7 @@ export default function Login() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.9 }}
-        style={{ backgroundImage: 'url(/Mahabaleshwar.jpg)' }}
+        style={{ backgroundImage: 'url(/Tarkarli-coast.jpg)' }}
         aria-hidden="true"
       >
         <div className="auth-split__image-overlay">

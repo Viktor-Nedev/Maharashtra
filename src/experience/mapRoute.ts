@@ -145,6 +145,21 @@ export function altitudeAt(t: number): number {
   return lerp(HIGH, LOW, e);
 }
 
+/**
+ * Map zoom level at fraction t for the 2D top-down flight — starts wider so more
+ * of Maharashtra is in frame at take-off, then closes in toward the landing. At
+ * pitch 0 the visible tile set is small and bounded (no horizon pulling in
+ * distant tiles), so a modest zoom range keeps the whole fly-through to a few
+ * dozen satellite tiles total — far lighter than the old 3D corridor.
+ */
+export function zoomAt(t: number): number {
+  const WIDE = 9.6;
+  const CLOSE = 11;
+  // Ease so the descent accelerates toward the landing (matches altitudeAt).
+  const e = Math.pow(Math.max(0, Math.min(1, t)), 1.2);
+  return lerp(WIDE, CLOSE, e);
+}
+
 /** Fractional landmark index (floor = active, frac = blend to next). */
 export function landmarkAt(t: number): { index: number; frac: number } {
   const scaled = Math.max(0, Math.min(0.99999, t)) * (LANDMARK_COUNT - 1);

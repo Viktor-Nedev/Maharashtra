@@ -126,7 +126,7 @@ export default function Register() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.9 }}
-        style={{ backgroundImage: 'url(/SahyadriRanges.jpg)' }}
+        style={{ backgroundImage: 'url(/Harishchandra.jpg)' }}
         aria-hidden="true"
       >
         <div className="auth-split__image-overlay">

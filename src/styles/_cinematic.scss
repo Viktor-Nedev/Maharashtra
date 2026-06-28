@@ -304,6 +304,14 @@
     .scene--center & {
       margin-left: auto;
       margin-right: auto;
+      /* The media is a full-width grid, so margin:auto alone can't centre its
+         fixed-width track — centre the track within the grid. */
+      justify-content: center;
+    }
+    /* In a centred scene (e.g. the closing "Start Your Adventure") let a single
+       photo grow into a proper centred focal point instead of a small thumbnail. */
+    .scene--center &--single {
+      grid-template-columns: minmax(0, min(520px, 88vw));
     }
   }
 
@@ -361,6 +369,9 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 25;
+  // Purely decorative — it fades out but stays in the DOM, so without this it
+  // would invisibly trap clicks on the centred bottom CTA ("Start Your Adventure").
+  pointer-events: none;
   display: flex;
   flex-direction: column;
   align-items: center;

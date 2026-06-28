@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useScrollStore } from '@/lib/scrollStore';
-import { LANDMARKS, altitudeAt, routePointAt } from './mapRoute';
+import { LANDMARKS, routePointAt, zoomAt } from './mapRoute';
 
 const token = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -29,8 +29,10 @@ export function MapboxFlight({ lowPower = false }: { lowPower?: boolean }) {
       container: ref.current,
       style: 'mapbox://styles/vikdev/cmlo8l453002c01qu7avs7rf3',
       center: routePointAt(0),
-      zoom: 11,
-      pitch: 60,
+      zoom: zoomAt(0),
+      // 2D top-down flight: pitch 0 means no horizon, so only the small bounded
+      // viewport tiles load each frame (no distant-tile churn, no terrain DEM).
+      pitch: 0,
       bearing: 0,
       projection: { name: 'mercator' },
       interactive: false,
@@ -86,29 +88,9 @@ export function MapboxFlight({ lowPower = false }: { lowPower?: boolean }) {
         });
       }
 
-      // 3D terrain doubles the tile requests (satellite + DEM) and adds GPU
-      // cost. On low-power devices we fly over flat satellite instead — still
-      // looks great at 60° pitch but loads roughly twice as fast.
-      if (!lowPower) {
-        if (!map.getSource('dem')) {
-          map.addSource('dem', {
-            type: 'raster-dem',
-            url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-            tileSize: 512,
-            maxzoom: 14,
-          });
-        }
-        map.setTerrain({ source: 'dem', exaggeration: 1.2 });
-      }
-
-      map.setFog({
-        range: [3, 18],
-        color: 'rgba(214, 228, 242, 0.35)',
-        'high-color': '#9cc4ee',
-        'horizon-blend': 0.12,
-        'space-color': '#0a1430',
-        'star-intensity': 0.05,
-      });
+      // No 3D terrain (DEM) and no fog in 2D: top-down flight has no horizon, so
+      // terrain is invisible anyway and DEM would only double the tile requests.
+      // Satellite raster alone keeps the fly-through to a few dozen tiles total.
 
       LANDMARKS.forEach((lm) => {
         const el = document.createElement('button');
@@ -121,29 +103,16 @@ export function MapboxFlight({ lowPower = false }: { lowPower?: boolean }) {
         new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat(lm.coordinates).addTo(map);
       });
 
+      // 2D top-down: just pan the center along the route and ease the zoom in as
+      // the flight descends. North-up (bearing 0) keeps the visible tile set
+      // stable and predictable — the ground simply glides north under the plane.
       const aim = (f: number) => {
-        const target = routePointAt(f);
-        const alt = altitudeAt(f);
-        const a = routePointAt(Math.max(0, f - 0.0012));
-        const b = routePointAt(Math.min(1, f + 0.0012));
-        const cosLat = Math.max(0.05, Math.cos((target[1] * Math.PI) / 180));
-        let dx = (b[0] - a[0]) * 111320 * cosLat;
-        let dy = (b[1] - a[1]) * 110540;
-        const len = Math.hypot(dx, dy) || 1;
-        dx /= len;
-        dy /= len;
-        // Keep the camera angled down at the terrain (~52° pitch) rather than
-        // toward the horizon — a horizon-ward view pulls in hundreds of distant
-        // tiles and stalls. Smaller multiplier = more top-down = fewer tiles.
-        const D = alt * 1.3;
-        const camLngLat: [number, number] = [
-          target[0] - (dx * D) / (111320 * cosLat),
-          target[1] - (dy * D) / 110540,
-        ];
-        const cam = map.getFreeCameraOptions();
-        cam.position = mapboxgl.MercatorCoordinate.fromLngLat(camLngLat, alt);
-        cam.lookAtPoint(target);
-        map.setFreeCameraOptions(cam);
+        map.jumpTo({
+          center: routePointAt(f),
+          zoom: zoomAt(f),
+          bearing: 0,
+          pitch: 0,
+        });
       };
 
       let applied = -1;
@@ -192,13 +161,12 @@ export function MapboxFlight({ lowPower = false }: { lowPower?: boolean }) {
       // The single reveal path used by the cap + error handlers too.
       revealNow = start;
 
-      // Fast overview preload — warmed behind the cloud-intro curtain. We cache
-      // COARSE parents for the whole route (cheap) so the ground + 3D terrain are
-      // present everywhere from the first frame; Mapbox then refines satellite +
-      // DEM on-demand as the flight proceeds (coarse → sharp, never blank).
-      //   Pass 1 (zoom 5) — ancestor tiles for the whole state.
-      //   Pass 2 (zoom 8) — coarse satellite + DEM across the whole corridor.
-      //   Pass 3 (aim 0)  — warm just the take-off view so the opening is crisp.
+      // Fast overview preload — warmed behind the cloud-intro curtain. In 2D this
+      // is much cheaper than the old 3D corridor: one coarse overview caches the
+      // ancestor satellite tiles for the whole state, then we frame the take-off
+      // view so the opening is crisp. Mapbox refines on-demand as we pan north.
+      //   Pass 1 (zoom 6) — ancestor satellite tiles for the whole route.
+      //   Pass 2 (aim 0)  — warm just the take-off view, then go live.
 
       const idleWait = (cb: () => void, cap: number) => {
         let fired = false;
@@ -223,23 +191,16 @@ export function MapboxFlight({ lowPower = false }: { lowPower?: boolean }) {
         paint: { 'line-color': '#ff7a3d', 'line-width': 3, 'line-opacity': 0.55, 'line-blur': 1 },
       });
 
-      // Pass 1: very low zoom overview of Maharashtra
-      map.jumpTo({ center: [73.8, 18.5], zoom: 5, pitch: 0, bearing: 0 });
-      setPreloadProgress(0.15);
+      // Pass 1: coarse overview of the whole route — caches ancestor tiles cheaply.
+      map.jumpTo({ center: [73.8, 18.5], zoom: 6, pitch: 0, bearing: 0 });
+      setPreloadProgress(0.25);
 
       idleWait(() => {
-        // Pass 2: zoom-8 over the route bbox — coarse parents (satellite + DEM)
-        // for the entire corridor so terrain is present everywhere instantly.
-        map.jumpTo({ center: [73.8, 18.5], zoom: 8, pitch: 0, bearing: 0 });
-        setPreloadProgress(0.55);
-
-        idleWait(() => {
-          // Pass 3: frame the actual take-off view so the opening is sharp.
-          aim(0);
-          setPreloadProgress(0.8);
-          idleWait(start, 1200);
-        }, 1200);
-      }, 700);
+        // Pass 2: frame the actual take-off view so the opening is sharp.
+        aim(0);
+        setPreloadProgress(0.7);
+        idleWait(start, 1000);
+      }, 800);
     });
 
     return () => {

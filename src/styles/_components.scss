@@ -258,11 +258,10 @@
     background-clip: text;
     -webkit-text-fill-color: transparent;
     filter: drop-shadow(0 10px 44px rgba(0, 0, 0, 0.6));
-    /* entrance reveal once, then an endless gentle shine + float */
+    /* entrance reveal once, then an endless gentle shine (no vertical float) */
     animation:
       hero-reveal 1.5s cubic-bezier(0.16, 1, 0.3, 1) both,
-      hero-shine 7s ease-in-out 1.6s infinite,
-      hero-float 6s ease-in-out 1.6s infinite;
+      hero-shine 7s ease-in-out 1.6s infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -322,17 +321,6 @@
   }
   100% {
     background-position: 0% 0;
-  }
-}
-
-/* Gentle vertical float so the title feels alive. */
-@keyframes hero-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
   }
 }
 
@@ -1798,6 +1786,11 @@
       }
     }
   }
+
+  /* On very narrow phones two columns get cramped — go single-column. */
+  @media (max-width: 420px) {
+    &__grid { grid-template-columns: 1fr; }
+  }
 }
 
 /* ===========================================================================
@@ -1808,57 +1801,50 @@
   cursor: none !important;
 }
 
-.cursor-dot,
-.cursor-ring {
+/* On-theme pointer: a glowing accent dot with a comet trail that stretches along
+   the direction of travel. Both transforms are driven per-frame from JS, so they
+   are never transitioned; only the dot's hover/press size animates. */
+.cursor-dot {
   position: fixed;
   top: 0;
   left: 0;
-  pointer-events: none;
-  z-index: 10000;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  /* transform handles position; translate(-50%,-50%) centres on the pointer */
-  margin-left: -4px;
-  margin-top: -4px;
-}
-
-.cursor-dot {
-  width: 7px;
-  height: 7px;
-  margin-left: -3.5px;
-  margin-top: -3.5px;
   background: var(--accent);
-  box-shadow: 0 0 10px var(--accent-glow), 0 0 0 2px rgba(255, 255, 255, 0.85);
-}
-
-/* The ring uses mix-blend-mode: difference so a white outline inverts whatever's
-   beneath it — it stays crisp on photos, the map, light and dark themes alike. */
-.cursor-ring {
-  width: 34px;
-  height: 34px;
-  margin-left: -17px;
-  margin-top: -17px;
-  border: 1.5px solid #fff;
-  mix-blend-mode: difference;
-  opacity: 0.9;
-  transition: width 0.25s var(--ease), height 0.25s var(--ease),
-    margin 0.25s var(--ease), background 0.25s var(--ease),
-    border-radius 0.25s var(--ease), opacity 0.2s var(--ease);
+  box-shadow: 0 0 10px var(--accent-glow), 0 0 22px var(--accent-glow),
+    0 0 0 1.5px rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+  z-index: 10001;
+  will-change: transform;
+  transition: width 0.2s var(--ease), height 0.2s var(--ease),
+    background 0.2s var(--ease);
 
   &.is-hover {
-    width: 56px;
-    height: 56px;
-    margin-left: -28px;
-    margin-top: -28px;
-    background: #fff;
-    opacity: 1;
+    width: 16px;
+    height: 16px;
+    background: var(--accent-soft);
   }
   &.is-down {
-    width: 22px;
-    height: 22px;
-    margin-left: -11px;
-    margin-top: -11px;
-    background: #fff;
+    width: 7px;
+    height: 7px;
   }
+}
+
+.cursor-trail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 6px;
+  width: 0;
+  border-radius: 3px;
+  /* bright at the head (right edge, anchored to the dot) → fades into the tail */
+  background: linear-gradient(to right, transparent, var(--accent));
+  filter: blur(1px);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10000;
+  will-change: transform, width, opacity;
 }
 
 /* ===========================================================================

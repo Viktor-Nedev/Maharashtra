@@ -11,6 +11,15 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 
 const toDate = (s: string) => new Date(s + 'T00:00:00');
 
+/**
+ * Local YYYY-MM-DD key. We must NOT use toISOString() here: dates are built at
+ * LOCAL midnight, and in any +offset timezone (e.g. India UTC+5:30) toISOString
+ * rolls back to the previous UTC day — which would mis-key every event one day
+ * early and make booking dots land on the wrong cell (or vanish at month edges).
+ */
+const localKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 /** Expand each event's [from, to] range into the individual day strings it covers. */
 function eventsByDay(events: TripEvent[]): Map<string, TripEvent[]> {
   const map = new Map<string, TripEvent[]>();
@@ -18,7 +27,7 @@ function eventsByDay(events: TripEvent[]): Map<string, TripEvent[]> {
     const start = toDate(ev.dateFrom);
     const end = toDate(ev.dateTo);
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const key = d.toISOString().slice(0, 10);
+      const key = localKey(d);
       const list = map.get(key) ?? [];
       list.push(ev);
       map.set(key, list);
@@ -30,7 +39,7 @@ function eventsByDay(events: TripEvent[]): Map<string, TripEvent[]> {
 export function TripCalendar({ events }: { events: TripEvent[] }) {
   // Start on the month of the soonest upcoming trip, else today.
   const initial = useMemo(() => {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = localKey(new Date());
     const upcoming = events
       .map((e) => e.dateFrom)
       .filter((d) => d >= todayStr)
@@ -45,7 +54,7 @@ export function TripCalendar({ events }: { events: TripEvent[] }) {
 
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localKey(new Date());
 
   const prev = () => {
     if (month === 0) { setMonth(11); setYear((y) => y - 1); }

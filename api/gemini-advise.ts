@@ -36,6 +36,10 @@ export default async function handler(req: Request): Promise<Response> {
     });
   }
 
+  // Model is configurable so it can be pointed at whichever model the API key's
+  // project actually has quota for, without a code change.
+  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+
   const { message, history = [] } = await req.json() as {
     message: string;
     history: { role: string; content: string }[];
@@ -64,7 +68,7 @@ Keep responses concise (under 300 words). Use markdown for formatting: **bold**,
   (async () => {
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${key}&alt=sse`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${key}&alt=sse`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -80,8 +84,19 @@ Keep responses concise (under 300 words). Use markdown for formatting: **bold**,
       );
 
       if (!res.ok || !res.body) {
-        const errText = await res.text().catch(() => res.statusText);
-        writer.write(encoder.encode(`\n\n*Gemini error (${res.status}): ${errText}*`));
+        // Log the full upstream error server-side, but show the user a short,
+        // friendly line instead of dumping the raw provider JSON into the chat.
+        const raw = await res.text().catch(() => '');
+        console.error(`[gemini-advise] ${model} upstream ${res.status}:`, raw.slice(0, 600));
+        const friendly =
+          res.status === 429
+            ? "I've hit my request quota for the moment. Please wait a few seconds and try again — if it keeps happening, the API key needs more quota."
+            : res.status === 403
+              ? 'The AI is not authorised for this model. The Gemini API key/project needs access to it (or a valid key).'
+              : res.status === 404
+                ? `The configured AI model "${model}" was not found. Set GEMINI_MODEL to a model your key supports.`
+                : 'The AI advisor is temporarily unavailable. Please try again shortly.';
+        writer.write(encoder.encode(friendly));
         return;
       }
 

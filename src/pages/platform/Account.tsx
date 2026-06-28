@@ -89,7 +89,7 @@ export default function Account() {
             className={`profile__tab ${tab === t ? 'is-active' : ''}`}
             onClick={() => setTab(t)}
           >
-            {t === 'profile' ? '👤 Profile' : t === 'trips' ? '🗺 My Trips' : '⚙ Settings'}
+            {t === 'profile' ? 'Profile' : t === 'trips' ? 'My Trips' : 'Settings'}
           </button>
         ))}
       </div>
@@ -175,7 +175,7 @@ export default function Account() {
                                 <strong>{t.activityName}</strong>
                                 <span>{t.destinationName}</span>
                                 <span className="planned-item__dates">
-                                  📅 {fmtRange(t.dateFrom, t.dateTo)} · {t.people} ppl
+                                  {fmtRange(t.dateFrom, t.dateTo)} · {t.people} ppl
                                 </span>
                               </div>
                               <div className="planned-item__actions">
@@ -309,8 +309,8 @@ export default function Account() {
                     <span className="theme-switch__thumb" />
                   </span>
                   <span className="theme-switch__labels">
-                    <span>🌙</span>
-                    <span>☀️</span>
+                    <span>Dark</span>
+                    <span>Light</span>
                   </span>
                 </button>
               </div>
