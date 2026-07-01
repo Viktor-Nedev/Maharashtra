@@ -2,7 +2,7 @@
 
 A full-stack, production-ready platform to **discover, compare and book** outdoor
 adventures across Maharashtra — fronted by a scroll-driven *flight* over a live
-satellite map of the state. Built for the **3D Websites Hackathon** and the
+satellite map of the state. Built for the
 **Zero to Live: Website Challenge**.
 
 > Scroll = fly. A 3D airplane carries you south → north over a live Mapbox
